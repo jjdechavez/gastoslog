@@ -2,14 +2,11 @@ package server
 
 import (
 	"fmt"
+	"gastoslog/internal/config"
+	"gastoslog/internal/database"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
-
-	_ "github.com/joho/godotenv/autoload"
-
-	"gastoslog/internal/database"
 )
 
 type Server struct {
@@ -19,7 +16,7 @@ type Server struct {
 }
 
 func NewServer() *http.Server {
-	port, _ := strconv.Atoi(os.Getenv("PORT"))
+	port, _ := strconv.Atoi(config.PORT)
 	NewServer := &Server{
 		port: port,
 

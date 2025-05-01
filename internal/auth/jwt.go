@@ -25,13 +25,13 @@ func GenerateJWTToken(secret []byte, userID int64) (string, error) {
 	return tokenString, nil
 }
 
-func VerifyJWTToken(secret string, tokenString string) (*jwt.Token, error) {
+func VerifyJWTToken(secret []byte, tokenString string) (*jwt.Token, error) {
 	if tokenString == "" {
 		return nil, fmt.Errorf("Empty header")
 	}
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secret), nil
+		return secret, nil
 	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
 
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"gastoslog/internal/config"
 	"gastoslog/internal/server"
 )
 
@@ -38,6 +39,8 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 }
 
 func main() {
+	// Load env's
+	config.LoadENV()
 
 	server := server.NewServer()
 

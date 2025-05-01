@@ -3,8 +3,8 @@ package middleware
 import (
 	"fmt"
 	"gastoslog/internal/auth"
+	"gastoslog/internal/config"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -40,14 +40,7 @@ func NewBasicAuthMiddleware(api huma.API) func(ctx huma.Context, next func(huma.
 			return
 		}
 
-		authSecret := os.Getenv("AUTH_SECRET")
-
-		if authSecret == "" {
-			huma.WriteErr(api, ctx, http.StatusInternalServerError, "Missing auth secret")
-			return
-		}
-
-		token, err := auth.VerifyJWTToken(authSecret, tokenStr)
+		token, err := auth.VerifyJWTToken([]byte(config.AUTH_SECRET), tokenStr)
 
 		if err != nil {
 			fmt.Printf("Failed to verify token")

@@ -4,7 +4,7 @@ import (
 	"context"
 	"gastoslog/internal/account"
 	"gastoslog/internal/auth"
-	"os"
+	"gastoslog/internal/config"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -63,13 +63,7 @@ func (h *UserHandler) SignIn(ctx context.Context, input *SignInInput) (*SignInOu
 
 	resp := &SignInOutput{}
 
-	authSecret := os.Getenv("AUTH_SECRET")
-
-	if authSecret == "" {
-		return nil, huma.Error500InternalServerError("Something went wrong")
-	}
-
-	token, err := auth.GenerateJWTToken([]byte(authSecret), user.ID)
+	token, err := auth.GenerateJWTToken([]byte(config.AUTH_SECRET), user.ID)
 
 	if err != nil {
 		return nil, err
@@ -90,14 +84,14 @@ type MeOutput struct {
 }
 
 func (h *UserHandler) Me(ctx context.Context, input *MeInput) (*MeOutput, error) {
-	userID := ctx.Value("userID")
-	fID, ok := userID.(float64)
+	cUserID := ctx.Value("userID")
+	userID, ok := cUserID.(float64)
 
 	if !ok {
 		return nil, huma.Error500InternalServerError("Something went wrong")
 	}
 
-	user, err := h.userService.GetUserById(ctx, int64(fID))
+	user, err := h.userService.GetUserById(ctx, int64(userID))
 
 	if err != nil {
 		return nil, huma.Error404NotFound("User not found")
