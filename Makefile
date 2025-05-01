@@ -9,6 +9,12 @@ build:
 	
 	@CGO_ENABLED=1 GOOS=linux go build -o main cmd/api/main.go
 
+build-dev:
+	@echo "Building..."
+	
+	
+	@CGO_ENABLED=1 GOOS=darwin go build -o main cmd/api/main.go
+
 # Run the application
 run:
 	@go run cmd/api/main.go

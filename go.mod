@@ -8,3 +8,16 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-sqlite3 v1.14.28
 )
+
+require (
+	github.com/danielgtaylor/huma/v2 v2.32.0
+	github.com/golang-jwt/jwt/v5 v5.2.2
+	github.com/jmoiron/sqlx v1.4.0
+	golang.org/x/crypto v0.32.0
+)
+
+require (
+	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
+	github.com/x448/float16 v0.8.4 // indirect
+)

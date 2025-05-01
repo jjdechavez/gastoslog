@@ -2,13 +2,13 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -22,10 +22,12 @@ type Service interface {
 	// Close terminates the database connection.
 	// It returns an error if the connection cannot be closed.
 	Close() error
+
+	UserRepository() UserRepository
 }
 
 type service struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 var (
@@ -39,12 +41,14 @@ func New() Service {
 		return dbInstance
 	}
 
-	db, err := sql.Open("sqlite3", dburl)
+	db, err := sqlx.Open("sqlite3", dburl)
 	if err != nil {
 		// This will not be a connection error, but a DSN parse error or
 		// another initialization error.
 		log.Fatal(err)
 	}
+
+	initializeSchema(db)
 
 	dbInstance = &service{
 		db: db,
@@ -110,4 +114,56 @@ func (s *service) Health() map[string]string {
 func (s *service) Close() error {
 	log.Printf("Disconnected from database: %s", dburl)
 	return s.db.Close()
+}
+
+func (s *service) UserRepository() UserRepository {
+	return NewUserRepository(s.db)
+}
+
+func initializeSchema(db *sqlx.DB) {
+	userSchema := `-- Users table stores user account information
+	CREATE TABLE IF NOT EXISTS users (
+		id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+		email TEXT NOT NULL UNIQUE,
+		password_hash TEXT NOT NULL,
+		role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+		email_verified_at DATETIME,
+		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		last_login_at DATETIME
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
+	CREATE INDEX IF NOT EXISTS idx_users_role ON users (role);
+	CREATE INDEX IF NOT EXISTS idx_users_created_at ON users (created_at);
+	CREATE INDEX IF NOT EXISTS idx_users_last_login ON users (last_login_at);
+	`
+
+	_, err := db.Exec(userSchema)
+	if err != nil {
+		log.Fatalf("Failed to initialize users table: %v", err)
+	}
+
+	categorySchema := `-- Categories table for user-specific expense categories
+	CREATE TABLE IF NOT EXISTS categories (
+		id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER NOT NULL,
+		name TEXT NOT NULL,
+		description TEXT,
+		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		deleted_at DATETIME,
+		CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+		CONSTRAINT unique_user_category UNIQUE (user_id, name)
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories (user_id);
+	CREATE INDEX IF NOT EXISTS idx_categories_name ON categories (name);
+	CREATE INDEX IF NOT EXISTS idx_categories_created_at ON categories (created_at);
+	CREATE INDEX IF NOT EXISTS idx_categories_deleted_at ON categories (deleted_at);`
+
+	_, err = db.Exec(categorySchema)
+	if err != nil {
+		log.Fatalf("Failed to initialize categories table: %v", err)
+	}
 }

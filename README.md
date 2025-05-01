@@ -1,6 +1,13 @@
-# Project gastoslog
+# Gastoslog
 
-One Paragraph of project description goes here
+Simple and clean expense logging.
+
+## Features
+
+- Authentication wiht email and password
+- Create your own expense category
+- Create or log your expenses
+- Chart expenses for day, month, and year
 
 ## Getting Started
 
