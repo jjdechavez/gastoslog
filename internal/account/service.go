@@ -16,10 +16,10 @@ type UserResponse struct {
 	ID              int64      `json:"id"`
 	Email           string     `json:"email"`
 	Role            string     `json:"role"`
-	EmailVerifiedAt *time.Time `json:"email_verified_at,omitempty"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
-	LastLoginAt     *time.Time `json:"last_login_at,omitempty"`
+	EmailVerifiedAt *time.Time `json:"-"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+	LastLoginAt     *time.Time `json:"-"`
 }
 
 func NewService(userRepo database.UserRepository) *Service {

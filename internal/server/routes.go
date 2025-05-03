@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"gastoslog/internal/account"
 	v1 "gastoslog/internal/api/v1"
@@ -30,7 +29,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}))
 
 	r.Get("/", s.HelloWorldHandler)
-
 	r.Get("/health", s.healthHandler)
 
 	humaConfig := huma.DefaultConfig("GastosLog API", "1.0.0")
@@ -48,6 +46,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	apiV1 := huma.NewGroup(api, "/v1")
 
 	apiV1.UseMiddleware(gastoslogMiddleware.NewBasicAuthMiddleware(apiV1))
+
+	bearerSecurity := []map[string][]string{{"bearer": {}}}
 
 	userService := account.NewService(s.db.UserRepository())
 	userHandler := v1.NewUserHandler(userService)
@@ -67,28 +67,34 @@ func (s *Server) RegisterRoutes() http.Handler {
 		Tags:        []string{"Auth"},
 	}, userHandler.SignUp)
 
-	type Test struct {
-		Body struct {
-			Ok bool
-			// UserID string
-		}
-	}
-
 	huma.Register(apiV1, huma.Operation{
 		OperationID: "auth-me",
 		Method:      http.MethodGet,
 		Path:        "/auth/me",
 		Summary:     "Session user",
 		Tags:        []string{"Auth"},
-		Security:    []map[string][]string{{"bearer": {}}},
+		Security:    bearerSecurity,
 	}, userHandler.Me)
 
-	huma.Get(apiV1, "/test", func(ctx context.Context, input *struct{}) (*Test, error) {
-		resp := &Test{}
-		resp.Body.Ok = true
+	categoryHandler := v1.NewCategoryHandler(s.db.CategoryRepository())
 
-		return resp, nil
-	})
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "category-list",
+		Method:      http.MethodGet,
+		Path:        "/categories",
+		Summary:     "List categories",
+		Tags:        []string{"Category"},
+		Security:    bearerSecurity,
+	}, categoryHandler.ListCategory)
+
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "category-create",
+		Method:      http.MethodPost,
+		Path:        "/categories",
+		Summary:     "Create category",
+		Tags:        []string{"Category"},
+		Security:    bearerSecurity,
+	}, categoryHandler.CreateCategory)
 
 	return r
 }
@@ -108,10 +114,4 @@ func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	jsonResp, _ := json.Marshal(s.db.Health())
 	_, _ = w.Write(jsonResp)
-}
-
-func MyMiddleware(ctx huma.Context, next func(huma.Context)) {
-	ctx.SetHeader("My-Custom-Header", "Hello, World")
-
-	next(ctx)
 }
