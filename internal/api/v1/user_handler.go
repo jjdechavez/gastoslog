@@ -5,6 +5,7 @@ import (
 	"gastoslog/internal/account"
 	"gastoslog/internal/auth"
 	"gastoslog/internal/config"
+	"gastoslog/internal/middleware"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -84,11 +85,9 @@ type MeOutput struct {
 }
 
 func (h *UserHandler) Me(ctx context.Context, input *MeInput) (*MeOutput, error) {
-	cUserID := ctx.Value("userID")
-	userID, ok := cUserID.(float64)
-
-	if !ok {
-		return nil, huma.Error500InternalServerError("Something went wrong")
+	userID, err := middleware.GetContextUserID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	user, err := h.userService.GetUserById(ctx, int64(userID))

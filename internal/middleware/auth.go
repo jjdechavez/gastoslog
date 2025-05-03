@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"gastoslog/internal/auth"
 	"gastoslog/internal/config"
@@ -13,7 +14,6 @@ import (
 )
 
 type SimpleClaims struct {
-	// jwt.Token
 	UserID string `json:"userId"`
 }
 
@@ -66,4 +66,15 @@ func NewBasicAuthMiddleware(api huma.API) func(ctx huma.Context, next func(huma.
 
 		huma.WriteErr(api, ctx, http.StatusUnauthorized, "Invalid token claims")
 	}
+}
+
+func GetContextUserID(ctx context.Context) (float64, error) {
+	cUserID := ctx.Value("userID")
+	userID, ok := cUserID.(float64)
+
+	if !ok {
+		return 0, huma.Error500InternalServerError("Failed to get userID on context")
+	}
+
+	return userID, nil
 }
