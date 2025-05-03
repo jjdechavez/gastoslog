@@ -24,6 +24,7 @@ type Service interface {
 	Close() error
 
 	UserRepository() UserRepository
+	CategoryRepository() CategoryRepository
 }
 
 type service struct {
@@ -118,6 +119,10 @@ func (s *service) Close() error {
 
 func (s *service) UserRepository() UserRepository {
 	return NewUserRepository(s.db)
+}
+
+func (s *service) CategoryRepository() CategoryRepository {
+	return NewCategoryRepository(s.db)
 }
 
 func initializeSchema(db *sqlx.DB) {

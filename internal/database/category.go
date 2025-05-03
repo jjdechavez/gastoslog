@@ -20,10 +20,11 @@ type Category struct {
 }
 
 type CategoryRepository interface {
-	Create(ctx context.Context, userID int64, name string, description sql.NullString) (*Category, error)
+	Create(ctx context.Context, input NewCategoryInput) (*Category, error)
 	GetByID(ctx context.Context, id int64) (*Category, error)
 	Update(ctx context.Context, category *Category) error
 	Delete(ctx context.Context, id int64) error
+	List(ctx context.Context, input ListCategoryInput) ([]Category, error)
 }
 
 type categoryRepository struct {
@@ -34,8 +35,13 @@ func NewCategoryRepository(db *sqlx.DB) CategoryRepository {
 	return &categoryRepository{db: db}
 }
 
-func (r *categoryRepository) Create(ctx context.Context, userID int64, name string, description sql.NullString) (*Category, error) {
+type NewCategoryInput struct {
+	UserID      int64
+	Name        string
+	Description string
+}
 
+func (r *categoryRepository) Create(ctx context.Context, input NewCategoryInput) (*Category, error) {
 	query := `
 		INSERT INTO categories (user_id, name, description, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5)
@@ -44,15 +50,15 @@ func (r *categoryRepository) Create(ctx context.Context, userID int64, name stri
 	now := time.Now()
 
 	category := &Category{
-		UserID:      userID,
-		Name:        name,
-		Description: description,
+		UserID:      input.UserID,
+		Name:        input.Name,
+		Description: sql.NullString{String: input.Description},
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
 
 	err := r.db.QueryRowContext(ctx, query,
-		userID, name, description, now, now,
+		input.UserID, input.Name, input.Description, now, now,
 	).Scan(&category.ID, &category.UserID, &category.Name, &category.Description, &category.CreatedAt, &category.UpdatedAt, &category.DeletedAt)
 
 	if err != nil {
@@ -99,4 +105,45 @@ func (r *categoryRepository) Delete(ctx context.Context, id int64) error {
 
 	_, err := r.db.ExecContext(ctx, query, now, id)
 	return err
+}
+
+type ListCategoryInput struct {
+	UserID int64 `json:"user_id" doc:"User ID"`
+	Page   int   `json:"page"`
+	Limit  int   `json:"limit"`
+}
+
+func (r *categoryRepository) List(ctx context.Context, input ListCategoryInput) ([]Category, error) {
+	categories := []Category{}
+
+	defaultLimit := 10
+	if input.Limit == 0 {
+		input.Limit = defaultLimit
+	}
+
+	defaultPage := 1
+	if input.Page == 0 {
+		input.Page = defaultPage
+	}
+	offset := (input.Page - 1) * input.Limit
+
+	query := `
+		SELECT
+			id,
+			name,
+			description,
+			created_at,
+			updated_at
+		FROM categories
+		WHERE user_id = $1
+		AND deleted_at IS NULL
+		LIMIT $2 OFFSET $3;
+	`
+
+	err := r.db.SelectContext(ctx, &categories, query, input.UserID, input.Limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	return categories, nil
 }
