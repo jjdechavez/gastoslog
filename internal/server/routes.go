@@ -96,6 +96,15 @@ func (s *Server) RegisterRoutes() http.Handler {
 		Security:    bearerSecurity,
 	}, categoryHandler.CreateCategory)
 
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "category-update",
+		Method:      http.MethodPost,
+		Path:        "/categories/{categoryId}",
+		Summary:     "Update category",
+		Tags:        []string{"Category"},
+		Security:    bearerSecurity,
+	}, categoryHandler.UpdateCategory)
+
 	return r
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"gastoslog/internal/database"
 	"gastoslog/internal/middleware"
+	"strconv"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -84,6 +85,53 @@ func (c *CategoryHandler) ListCategory(ctx context.Context, input *ListCategoryI
 	resp.Body.Meta.Page = input.Page
 	resp.Body.Meta.Limit = input.Limit
 
+	return resp, nil
+}
+
+type UpdateCategoryInput struct {
+	CategoryID string `path:"categoryId" doc:"Cateogry ID"`
+	Body       struct {
+		Name        string `json:"name" minLength:"2" maxLength:"255"`
+		Description string `json:"description,omitempty"`
+	}
+}
+
+type UpdatedCategoryOutput struct {
+	Body struct {
+		Category CategoryResponse `json:"category" doc:"Category created successfully"`
+	}
+}
+
+func (c *CategoryHandler) UpdateCategory(ctx context.Context, input *UpdateCategoryInput) (*UpdatedCategoryOutput, error) {
+	userID, err := middleware.GetContextUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	categoryID, err := strconv.ParseInt(input.CategoryID, 10, 64)
+	if err != nil {
+		return nil, huma.Error400BadRequest("Failed to parse categoryID")
+	}
+
+	_, err = c.categoryRepository.GetByID(ctx, categoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	payload := &database.UpdateCategoryInput{CategoryID: categoryID, UserID: int64(userID), Name: input.Body.Name, Description: input.Body.Description}
+
+	err = c.categoryRepository.Update(ctx, *payload)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("Failed to update category", err)
+	}
+
+	updatedCategory, err := c.categoryRepository.GetByID(ctx, categoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &UpdatedCategoryOutput{}
+	resp.Body.Category = toCategoryResponse(*updatedCategory)
 	return resp, nil
 }
 

@@ -16,13 +16,13 @@ type Category struct {
 	Description sql.NullString `db:"description"`
 	CreatedAt   time.Time      `db:"created_at"`
 	UpdatedAt   time.Time      `db:"updated_at"`
-	DeletedAt   *time.Time     `db:"delete_at"`
+	DeletedAt   *time.Time     `db:"deleted_at"`
 }
 
 type CategoryRepository interface {
 	Create(ctx context.Context, input NewCategoryInput) (*Category, error)
 	GetByID(ctx context.Context, id int64) (*Category, error)
-	Update(ctx context.Context, category *Category) error
+	Update(ctx context.Context, category UpdateCategoryInput) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, input ListCategoryInput) ([]Category, error)
 }
@@ -81,7 +81,14 @@ func (r *categoryRepository) GetByID(ctx context.Context, id int64) (*Category, 
 	return &category, nil
 }
 
-func (r *categoryRepository) Update(ctx context.Context, category *Category) error {
+type UpdateCategoryInput struct {
+	CategoryID  int64
+	UserID      int64
+	Name        string
+	Description string
+}
+
+func (r *categoryRepository) Update(ctx context.Context, updateWith UpdateCategoryInput) error {
 	query := `
 		UPDATE categories
 		SET name = $1,
@@ -89,9 +96,9 @@ func (r *categoryRepository) Update(ctx context.Context, category *Category) err
 			updated_at = $3
 		WHERE id = $4 AND user_id = $5`
 
-	category.UpdatedAt = time.Now()
+	now := time.Now()
 	_, err := r.db.ExecContext(ctx, query,
-		category.Name, category.Description, category.UpdatedAt, category.ID, category.UserID,
+		updateWith.Name, updateWith.Description, now, updateWith.CategoryID, updateWith.UserID,
 	)
 	return err
 }
