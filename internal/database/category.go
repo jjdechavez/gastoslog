@@ -25,6 +25,7 @@ type CategoryRepository interface {
 	Update(ctx context.Context, category UpdateCategoryInput) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, input ListCategoryInput) ([]Category, error)
+	ExistWithUserID(ctx context.Context, input ExistWithUserIDInput) (bool, error)
 }
 
 type categoryRepository struct {
@@ -153,4 +154,28 @@ func (r *categoryRepository) List(ctx context.Context, input ListCategoryInput) 
 	}
 
 	return categories, nil
+}
+
+type ExistWithUserIDInput struct {
+	UserID     int64 `doc:"User ID"`
+	CategoryID int64 `doc:"Category ID"`
+}
+
+func (r *categoryRepository) ExistWithUserID(ctx context.Context, input ExistWithUserIDInput) (bool, error) {
+	var count int
+	query := `
+		SELECT
+			COUNT(*)
+		FROM categories
+		WHERE id = $1
+		AND user_id = $2
+		AND deleted_at IS NULL
+	`
+
+	err := r.db.GetContext(ctx, &count, query, input.CategoryID, input.UserID)
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }

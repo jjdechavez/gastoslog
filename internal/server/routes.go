@@ -105,6 +105,15 @@ func (s *Server) RegisterRoutes() http.Handler {
 		Security:    bearerSecurity,
 	}, categoryHandler.UpdateCategory)
 
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "category-delete",
+		Method:      http.MethodDelete,
+		Path:        "/categories/{categoryId}",
+		Summary:     "Delete category",
+		Tags:        []string{"Category"},
+		Security:    bearerSecurity,
+	}, categoryHandler.DeleteCategory)
+
 	return r
 }
 

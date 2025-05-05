@@ -113,9 +113,15 @@ func (c *CategoryHandler) UpdateCategory(ctx context.Context, input *UpdateCateg
 		return nil, huma.Error400BadRequest("Failed to parse categoryID")
 	}
 
-	_, err = c.categoryRepository.GetByID(ctx, categoryID)
+	exist, err := c.categoryRepository.ExistWithUserID(ctx, database.ExistWithUserIDInput{
+		UserID:     int64(userID),
+		CategoryID: categoryID,
+	})
 	if err != nil {
 		return nil, err
+	}
+	if !exist {
+		return nil, huma.Error404NotFound("Category not found")
 	}
 
 	payload := &database.UpdateCategoryInput{CategoryID: categoryID, UserID: int64(userID), Name: input.Body.Name, Description: input.Body.Description}
@@ -133,6 +139,40 @@ func (c *CategoryHandler) UpdateCategory(ctx context.Context, input *UpdateCateg
 	resp := &UpdatedCategoryOutput{}
 	resp.Body.Category = toCategoryResponse(*updatedCategory)
 	return resp, nil
+}
+
+type DeleteCategoryInput struct {
+	CategoryID string `path:"categoryId" doc:"Category ID"`
+}
+
+func (c *CategoryHandler) DeleteCategory(ctx context.Context, input *DeleteCategoryInput) (*struct{}, error) {
+	userID, err := middleware.GetContextUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	categoryID, err := strconv.ParseInt(input.CategoryID, 10, 64)
+	if err != nil {
+		return nil, huma.Error400BadRequest("Failed to parse categoryID")
+	}
+
+	exist, err := c.categoryRepository.ExistWithUserID(ctx, database.ExistWithUserIDInput{
+		UserID:     int64(userID),
+		CategoryID: categoryID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
+		return nil, huma.Error404NotFound("Category not found")
+	}
+
+	err = c.categoryRepository.Delete(ctx, categoryID)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("Failed to delete category", err)
+	}
+
+	return nil, nil
 }
 
 type CategoryResponse struct {
