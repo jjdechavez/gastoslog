@@ -50,7 +50,7 @@ func (c *CategoryHandler) CreateCategory(ctx context.Context, input *NewCategory
 }
 
 type ListCategoryInput struct {
-	Page  int `query:"page" default:"0" doc:"Page number of pagination"`
+	Page  int `query:"page" default:"1" doc:"Page number of pagination"`
 	Limit int `query:"limit" default:"10" doc:"Limit per page of pagination"`
 }
 

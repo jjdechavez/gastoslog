@@ -12,6 +12,7 @@ require (
 require (
 	github.com/danielgtaylor/huma/v2 v2.32.0
 	github.com/golang-jwt/jwt/v5 v5.2.2
+	github.com/guregu/null/v6 v6.0.0
 	github.com/jmoiron/sqlx v1.4.0
 	golang.org/x/crypto v0.32.0
 )

@@ -25,6 +25,7 @@ type Service interface {
 
 	UserRepository() UserRepository
 	CategoryRepository() CategoryRepository
+	ExpenseRepository() ExpenseRepository
 }
 
 type service struct {
@@ -125,6 +126,10 @@ func (s *service) CategoryRepository() CategoryRepository {
 	return NewCategoryRepository(s.db)
 }
 
+func (s *service) ExpenseRepository() ExpenseRepository {
+	return NewExpenseRepository(s.db)
+}
+
 func initializeSchema(db *sqlx.DB) {
 	userSchema := `-- Users table stores user account information
 	CREATE TABLE IF NOT EXISTS users (
@@ -170,5 +175,29 @@ func initializeSchema(db *sqlx.DB) {
 	_, err = db.Exec(categorySchema)
 	if err != nil {
 		log.Fatalf("Failed to initialize categories table: %v", err)
+	}
+
+	expenseSchema := `-- Expenses table for user-specific expense records
+	CREATE TABLE IF NOT EXISTS expenses (
+		id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER NOT NULL,
+		category_id INTEGER NOT NULL,
+		amount INTEGER NOT NULL,
+		description TEXT,
+		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		deleted_at DATETIME,
+		CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+		CONSTRAINT fk_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses (user_id);
+	CREATE INDEX IF NOT EXISTS idx_expenses_category_id ON expenses (category_id);
+	CREATE INDEX IF NOT EXISTS idx_expenses_created_at ON expenses (created_at);
+	CREATE INDEX IF NOT EXISTS idx_expenses_deleted_at ON expenses (deleted_at);`
+
+	_, err = db.Exec(expenseSchema)
+	if err != nil {
+		log.Fatalf("Failed to initialize expenses table: %v", err)
 	}
 }

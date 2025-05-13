@@ -114,6 +114,35 @@ func (s *Server) RegisterRoutes() http.Handler {
 		Security:    bearerSecurity,
 	}, categoryHandler.DeleteCategory)
 
+	expenseHandler := v1.NewExpenseHandler(s.db.ExpenseRepository(), s.db.CategoryRepository())
+
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "expense-list",
+		Method:      http.MethodGet,
+		Path:        "/expenses",
+		Summary:     "List expenses",
+		Tags:        []string{"Expense"},
+		Security:    bearerSecurity,
+	}, expenseHandler.ListExpense)
+
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "expense-create",
+		Method:      http.MethodPost,
+		Path:        "/expenses",
+		Summary:     "Create expense",
+		Tags:        []string{"Expense"},
+		Security:    bearerSecurity,
+	}, expenseHandler.CreateExpense)
+
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "expense-update",
+		Method:      http.MethodPost,
+		Path:        "/expenses/{expenseId}",
+		Summary:     "Update expense",
+		Tags:        []string{"Expense"},
+		Security:    bearerSecurity,
+	}, expenseHandler.UpdateExpense)
+
 	return r
 }
 
