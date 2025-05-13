@@ -163,39 +163,39 @@ func (c *ExpenseHandler) UpdateExpense(ctx context.Context, input *UpdateExpense
 	return resp, nil
 }
 
-// type DeleteCategoryInput struct {
-// 	CategoryID string `path:"categoryId" doc:"Category ID"`
-// }
+type DeleteExpenseInput struct {
+	ExpenseID string `path:"expenseId" doc:"Expense ID"`
+}
 
-// func (c *CategoryHandler) DeleteCategory(ctx context.Context, input *DeleteCategoryInput) (*struct{}, error) {
-// 	userID, err := middleware.GetContextUserID(ctx)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func (c *ExpenseHandler) DeleteExpense(ctx context.Context, input *DeleteExpenseInput) (*struct{}, error) {
+	userID, err := middleware.GetContextUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-// 	categoryID, err := strconv.ParseInt(input.CategoryID, 10, 64)
-// 	if err != nil {
-// 		return nil, huma.Error400BadRequest("Failed to parse categoryID")
-// 	}
+	expenseID, err := strconv.ParseInt(input.ExpenseID, 10, 64)
+	if err != nil {
+		return nil, huma.Error400BadRequest("Failed to parse expenseID")
+	}
 
-// 	exist, err := c.categoryRepository.ExistWithUserID(ctx, database.ExistWithUserIDInput{
-// 		UserID:     int64(userID),
-// 		CategoryID: categoryID,
-// 	})
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	if !exist {
-// 		return nil, huma.Error404NotFound("Category not found")
-// 	}
+	exist, err := c.expenseRepository.ExistWithUserID(ctx, database.ExistExpenseWithUserIDInput{
+		UserID:    int64(userID),
+		ExpenseID: expenseID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
+		return nil, huma.Error404NotFound("Category not found")
+	}
 
-// 	err = c.categoryRepository.Delete(ctx, categoryID)
-// 	if err != nil {
-// 		return nil, huma.Error500InternalServerError("Failed to delete category", err)
-// 	}
+	err = c.expenseRepository.Delete(ctx, expenseID)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("Failed to delete expense", err)
+	}
 
-// 	return nil, nil
-// }
+	return nil, nil
+}
 
 type ExpenseResponse struct {
 	ID          int64            `json:"id"`
