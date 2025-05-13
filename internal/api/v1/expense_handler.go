@@ -216,10 +216,15 @@ func toExpenseResponse(expense database.RawExpense) ExpenseResponse {
 		UpdatedAt:   expense.CategoryUpdatedAt,
 	}
 
+	var description null.String
+	if expense.Description.Valid {
+		description = null.StringFrom(expense.Description.String)
+	}
+
 	return ExpenseResponse{
 		ID:          expense.ID,
 		Amount:      expense.Amount,
-		Description: null.NewString(expense.Description.String, false),
+		Description: description,
 		Category:    *category,
 		CreatedAt:   expense.CreatedAt,
 		UpdatedAt:   expense.UpdatedAt,
