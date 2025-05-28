@@ -1,9 +1,16 @@
 import { useState } from "react";
-import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+  type ViewProps,
+} from "react-native";
 import { Link, router } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useSession } from "@/context/session";
+import { HGroup } from "@/components/HGroup";
 
 export default function SignInScreen() {
   const { signIn } = useSession();
@@ -20,10 +27,11 @@ export default function SignInScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText style={styles.title}>
-        GastosLog
-      </ThemedText>
-      <ThemedText style={styles.subtitle}>Sign In with your account</ThemedText>
+      <HGroup
+        title="Gastoslog"
+        subtitle="Sign In with your account"
+        style={styles.hgroup}
+      />
 
       <TextInput
         style={styles.input}
@@ -63,6 +71,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: "center",
+  },
+  hgroup: {
+    alignItems: "center",
   },
   title: {
     fontSize: 24,

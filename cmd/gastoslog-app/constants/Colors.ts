@@ -3,24 +3,40 @@
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+import { PicoDarkThemeVariables, PicoThemeVariables } from "@/styles/pico-lime";
+
+const tintColorLight = "#0a7ea4";
+const tintColorDark = "#fff";
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: PicoThemeVariables.textColor,
+    textMuted: PicoThemeVariables.mutedColor,
+    h1: PicoThemeVariables.h1Color,
+    h2: PicoThemeVariables.h2Color,
+    h3: PicoThemeVariables.h3Color,
+    h4: PicoThemeVariables.h4Color,
+    h5: PicoThemeVariables.h5Color,
+    h6: PicoThemeVariables.h6Color,
+    background: PicoThemeVariables.backgroundColor,
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: "#687076",
+    tabIconDefault: "#687076",
     tabIconSelected: tintColorLight,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: PicoDarkThemeVariables.textColor,
+    textMuted: PicoDarkThemeVariables.mutedColor,
+    h1: PicoDarkThemeVariables.h1Color,
+    h2: PicoDarkThemeVariables.h2Color,
+    h3: PicoDarkThemeVariables.h3Color,
+    h4: PicoDarkThemeVariables.h4Color,
+    h5: PicoDarkThemeVariables.h5Color,
+    h6: PicoDarkThemeVariables.h6Color,
+    background: PicoDarkThemeVariables.backgroundColor,
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    icon: "#9BA1A6",
+    tabIconDefault: "#9BA1A6",
     tabIconSelected: tintColorDark,
   },
 };

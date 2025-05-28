@@ -1,6 +1,7 @@
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { PicoThemeVariables } from '@/styles/pico-lime';
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
@@ -20,6 +21,7 @@ export function ThemedText({
   return (
     <Text
       style={[
+        // styles.base,
         { color },
         type === 'default' ? styles.default : undefined,
         type === 'title' ? styles.title : undefined,
@@ -34,9 +36,13 @@ export function ThemedText({
 }
 
 const styles = StyleSheet.create({
+  base: {
+    marginTop: 0,
+    marginBottom: PicoThemeVariables.typographySpacingVertical,
+  },
   default: {
     fontSize: 16,
-    lineHeight: 24,
+    // lineHeight: 24,
   },
   defaultSemiBold: {
     fontSize: 16,
