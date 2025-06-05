@@ -6,6 +6,8 @@ import { ThemedView } from "@/components/ThemedView";
 import { useSession } from "@/context/session";
 import { HGroup } from "@/components/HGroup";
 import { Input } from "@/components/Input";
+import { Button, ButtonText } from "@/components/Button";
+import { PicoThemeVariables } from "@/styles/pico-lime";
 
 export default function SignInScreen() {
   const { signIn } = useSession();
@@ -43,9 +45,9 @@ export default function SignInScreen() {
         secureTextEntry
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <ThemedText style={styles.buttonText}>Sign In</ThemedText>
-      </TouchableOpacity>
+      <Button onPress={handleLogin}>
+        <ButtonText>Sign In</ButtonText>
+      </Button>
 
       <View style={styles.footer}>
         <ThemedText>Don't have an account? </ThemedText>
@@ -68,29 +70,6 @@ const styles = StyleSheet.create({
   hgroup: {
     alignItems: "center",
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  button: {
-    backgroundColor: "#007AFF",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -98,7 +77,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   link: {
-    color: "#007AFF",
+    color: PicoThemeVariables.primaryColor,
     fontWeight: "bold",
   },
 });
