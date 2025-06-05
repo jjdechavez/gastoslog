@@ -1,24 +1,19 @@
 import { useState } from "react";
-import {
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
-  type ViewProps,
-} from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Link, router } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useSession } from "@/context/session";
 import { HGroup } from "@/components/HGroup";
+import { Input } from "@/components/Input";
 
 export default function SignInScreen() {
   const { signIn } = useSession();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-    const result = await signIn(username, password);
+    const result = await signIn(email, password);
 
     if (result) {
       router.replace("/(auth)/(tabs)");
@@ -33,17 +28,15 @@ export default function SignInScreen() {
         style={styles.hgroup}
       />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Username"
-        value={username}
-        onChangeText={setUsername}
+      <Input
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
         autoCapitalize="none"
         autoCorrect={false}
       />
 
-      <TextInput
-        style={styles.input}
+      <Input
         placeholder="Password"
         value={password}
         onChangeText={setPassword}
@@ -85,14 +78,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 20,
     textAlign: "center",
-  },
-  input: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: "#ddd",
   },
   button: {
     backgroundColor: "#007AFF",
