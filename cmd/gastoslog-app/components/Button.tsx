@@ -20,6 +20,7 @@ export function Button(props: TouchableOpacityProps) {
         backgroundColor: PicoThemeVariables.primaryBackground,
         boxShadow: "0 0 0 rgba(0, 0, 0, 0)",
       }}
+      {...props}
     >
       {props.children}
     </TouchableOpacity>

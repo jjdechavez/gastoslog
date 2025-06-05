@@ -14,7 +14,7 @@ export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = async () => {
+  const handleSignin = async () => {
     const result = await signIn(email, password);
 
     if (result) {
@@ -45,7 +45,7 @@ export default function SignInScreen() {
         secureTextEntry
       />
 
-      <Button onPress={handleLogin}>
+      <Button onPress={handleSignin}>
         <ButtonText>Sign In</ButtonText>
       </Button>
 
