@@ -71,6 +71,9 @@ export const PicoThemeVariables = {
   formElementActiveBorder: "#a5d601",
   formElementFocus: "#a5d601",
   formElementDisabledOpacity: 0.5,
+  formElementSpacingVertical: 12,
+  formElementSpacingHorizontal: 16,
+  formElementPlaceholderColor: "#646b79",
 
   // Validation colors
   formElementInvalidBorder: "rgb(183.5, 105.5, 106.5)",
@@ -146,6 +149,7 @@ export const PicoDarkThemeVariables = {
   formElementActiveBorder: "#a5d601",
   formElementFocus: "#a5d601",
   formElementDisabledOpacity: 0.5,
+  formElementPlaceholderColor: "#8891a4",
 
   // Validation colors
   formElementInvalidBorder: "rgb(149.5, 74, 80)",
