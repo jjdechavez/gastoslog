@@ -11,9 +11,7 @@ export const Separator: React.FC<ISeparatorProps> = ({
   ...style
 }) => {
   return (
-    <View
-      style={[separatorStyle.separator, style as ViewStyle]}
-    >
+    <View style={[separatorStyle.separator, style as ViewStyle]}>
       {children}
     </View>
   );
@@ -22,8 +20,10 @@ export const Separator: React.FC<ISeparatorProps> = ({
 const separatorStyle = StyleSheet.create({
   separator: {
     height: 0,
-    margin: PicoThemeVariables.typographySpacingVertical,
+    marginVertical: PicoThemeVariables.typographySpacingVertical,
+    marginHorizontal: 0,
     borderTopWidth: PicoThemeVariables.borderWidth,
     borderTopColor: PicoThemeVariables.mutedBorderColor,
-  }
+    color: "inherit",
+  },
 });
