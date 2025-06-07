@@ -23,6 +23,7 @@ export const Colors = {
     formElementBackgroundColor: PicoThemeVariables.formElementBackground,
     formElementColor: PicoThemeVariables.formElementColor,
     formElementPlaceholderColor: PicoThemeVariables.formElementPlaceholderColor,
+    formElementInvalidBorder: PicoThemeVariables.formElementInvalidBorder,
     tint: tintColorLight,
     icon: "#687076",
     tabIconDefault: "#687076",
@@ -43,6 +44,7 @@ export const Colors = {
     formElementColor: PicoDarkThemeVariables.formElementColor,
     formElementPlaceholderColor:
       PicoDarkThemeVariables.formElementPlaceholderColor,
+    formElementInvalidBorder: PicoDarkThemeVariables.formElementInvalidBorder,
     tint: tintColorDark,
     icon: "#9BA1A6",
     tabIconDefault: "#9BA1A6",
