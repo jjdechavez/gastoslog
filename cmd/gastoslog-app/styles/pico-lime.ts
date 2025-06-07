@@ -25,7 +25,7 @@ export const PicoThemeVariables = {
   backgroundColor: "#fff",
   textColor: "#373c44",
   mutedColor: "#646b79",
-  mutedBorderColor: "rgb(231, 234, 239.5)",
+  mutedBorderColor: "#202632",
 
   // Primary colors
   primaryColor: "#577400",
