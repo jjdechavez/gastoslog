@@ -1,3 +1,4 @@
+import { z } from "zod/v4";
 import { request } from "./request";
 
 const V1 = "/v1" as const;
@@ -7,13 +8,25 @@ export type ListMeta = {
   limit: number;
 };
 
-export type Category = {
-  id: number;
-  name: string;
-  description: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
+export const CategorySchema = z.object({
+  id: z.number().nonnegative(),
+  name: z
+    .string({ error: "Name is required" })
+    .min(2, { error: "Minimum 2 text" })
+    .max(255, { error: "Maximum 255 text" }),
+  description: z.string().optional().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const NewCategorySchema = CategorySchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Category = z.infer<typeof CategorySchema>;
+export type NewCategory = z.infer<typeof NewCategorySchema>;
 
 export type ListCategory = {
   category: Array<Category>;
@@ -63,7 +76,7 @@ export const api = (version = V1) => {
           credentials: "include",
         });
       },
-      create: async (input: CreateCategoryInput) => {
+      create: async (input: NewCategory) => {
         return await request(`${version}/categories`, {
           method: "POST",
           body: input,

@@ -9,6 +9,7 @@ export const PicoThemeVariables = {
   fontWeight: "400",
   fontSize: 16,
   headerFontWeight: "700",
+  fontSmallSize: 14,
 
   // Spacing
   spacing: 16,
@@ -26,6 +27,7 @@ export const PicoThemeVariables = {
   textColor: "#373c44",
   mutedColor: "#646b79",
   mutedBorderColor: "#202632",
+  deteledColor: "rgb(136, 56.5, 53)",
 
   // Primary colors
   primaryColor: "#577400",
@@ -104,6 +106,7 @@ export const PicoDarkThemeVariables = {
   textColor: "#c2c7d0",
   mutedColor: "#7b8495",
   mutedBorderColor: "#202632",
+  deteledColor: "rgb(136, 56.5, 53)",
 
   // Primary colors
   primaryColor: "#82ab00",

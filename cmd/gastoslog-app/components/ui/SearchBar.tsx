@@ -7,9 +7,7 @@ import {
 } from "react-native";
 
 import { HStack } from "../HStack";
-import { Text } from "../../styles/text";
 import { IStyle } from "../base";
-import globalStyles from "../../styles/global";
 import { IconSymbol } from "./IconSymbol";
 import { Input } from "../Input";
 import { PicoThemeVariables } from "@/styles/pico-lime";
@@ -19,7 +17,7 @@ interface ISearchBarProps extends IStyle<ViewStyle> {
   onSearch?: (val: string) => void;
 }
 
-const SearchBarComponent: React.FC<ISearchBarProps> = ({
+export const SearchBar: React.FC<ISearchBarProps> = ({
   onSearch,
   children,
   ...style
@@ -33,13 +31,18 @@ const SearchBarComponent: React.FC<ISearchBarProps> = ({
   };
 
   return (
-    <TouchableOpacity onPress={handlePress} style={globalStyles.fullWidth}>
+    <TouchableOpacity
+      onPress={handlePress}
+      style={{
+        width: "100%",
+        marginBottom: 16,
+      }}
+    >
       <HStack
         width={"100%"}
-        height={38}
+        height={50}
         borderRadius={4}
-        padding={12}
-        paddingLeft={44}
+        paddingLeft={PicoThemeVariables.formElementSpacingHorizontal + 28}
         justifyContent={"flex-start"}
         backgroundColor={backgroundColor}
         {...style}
@@ -47,7 +50,6 @@ const SearchBarComponent: React.FC<ISearchBarProps> = ({
         <Input
           ref={inputRef}
           placeholder="Search"
-          placeholderTextColor={"#858489"}
           onChangeText={onSearch}
           style={{
             paddingVertical: PicoThemeVariables.formElementSpacingVertical,
@@ -64,13 +66,11 @@ const SearchBarComponent: React.FC<ISearchBarProps> = ({
   );
 };
 
-export const SearchBar = React.memo(SearchBarComponent);
-
 const searchBarStyle = StyleSheet.create({
   icon: {
     position: "absolute",
     left: 12,
     zIndex: 1,
-    color: "#858489",
+    color: "#8891a4",
   },
 });

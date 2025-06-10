@@ -12,6 +12,7 @@ export const Colors = {
   light: {
     text: PicoThemeVariables.textColor,
     textMuted: PicoThemeVariables.mutedColor,
+    textDeletedColor: PicoThemeVariables.deteledColor,
     h1: PicoThemeVariables.h1Color,
     h2: PicoThemeVariables.h2Color,
     h3: PicoThemeVariables.h3Color,
@@ -32,6 +33,7 @@ export const Colors = {
   dark: {
     text: PicoDarkThemeVariables.textColor,
     textMuted: PicoDarkThemeVariables.mutedColor,
+    textDeletedColor: PicoThemeVariables.deteledColor,
     h1: PicoDarkThemeVariables.h1Color,
     h2: PicoDarkThemeVariables.h2Color,
     h3: PicoDarkThemeVariables.h3Color,
