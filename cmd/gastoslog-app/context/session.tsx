@@ -5,7 +5,7 @@ import { api } from "@/services/api";
 type SessionContextType = {
   isLoading: boolean;
   session: string | null;
-  signIn: (username: string, password: string) => Promise<boolean>;
+  signIn: (email: string, password: string) => Promise<boolean>;
   signUp: (
     username: string,
     password: string,
@@ -18,9 +18,9 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [[isLoading, session], setSession] = useStorageState("session");
 
-  const signIn = async (username: string, password: string) => {
+  const signIn = async (email: string, password: string) => {
     try {
-      const response = await api().auth.signIn(username, password);
+      const response = await api().auth.signIn(email, password);
 
       setSession(response.token);
       return true;
