@@ -98,7 +98,7 @@ type UpdateCategoryInput struct {
 
 type UpdatedCategoryOutput struct {
 	Body struct {
-		Category CategoryResponse `json:"category" doc:"Category created successfully"`
+		Data CategoryResponse `json:"data" doc:"Category updated successfully"`
 	}
 }
 
@@ -137,7 +137,7 @@ func (c *CategoryHandler) UpdateCategory(ctx context.Context, input *UpdateCateg
 	}
 
 	resp := &UpdatedCategoryOutput{}
-	resp.Body.Category = toCategoryResponse(*updatedCategory)
+	resp.Body.Data = toCategoryResponse(*updatedCategory)
 	return resp, nil
 }
 
@@ -173,6 +173,46 @@ func (c *CategoryHandler) DeleteCategory(ctx context.Context, input *DeleteCateg
 	}
 
 	return nil, nil
+}
+
+type DetailCategoryInput struct {
+	CategoryID int `path:"categoryId" doc:"Category ID"`
+}
+
+type DetailCategoryOutput struct {
+	Body struct {
+		Data CategoryResponse `json:"data" doc:"Category Detail"`
+	}
+}
+
+func (c *CategoryHandler) DetailCategory(ctx context.Context, input *DetailCategoryInput) (*DetailCategoryOutput, error) {
+	userID, err := middleware.GetContextUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	exist, err := c.categoryRepository.ExistWithUserID(ctx, database.ExistWithUserIDInput{
+		UserID:     int64(userID),
+		CategoryID: int64(input.CategoryID),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !exist {
+		return nil, huma.Error404NotFound("Category not found")
+	}
+
+	detail, err := c.categoryRepository.GetByID(ctx, int64(input.CategoryID))
+
+	if err != nil {
+		return nil, huma.Error500InternalServerError("Failed to get category", err)
+	}
+
+	resp := &DetailCategoryOutput{}
+	resp.Body.Data = toCategoryResponse(*detail)
+
+	return resp, nil
 }
 
 type CategoryResponse struct {
