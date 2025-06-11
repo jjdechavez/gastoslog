@@ -10,8 +10,7 @@ import {
   ListCategory,
   ListMeta,
   Category,
-  UpdateCategoryInput,
-  NewCategory,
+  CategoryInput,
 } from "@/services/api";
 import { queryKeysFactory, UseQueryOptionsWrapper } from "@/services/query";
 import { buildOptions } from "@/services/query";
@@ -30,35 +29,51 @@ export const useCategories = (
     ReturnType<CategoriesQueryKey["list"]>
   >,
 ) => {
-  const { data, ...rest } = useQuery({
+  return useQuery({
     queryKey: categoryKeys.list(query),
     queryFn: () => api().category.list(),
     ...options,
   });
-  return { ...data, ...rest } as const;
+};
+
+export const useCategory = (
+  categoryId: string,
+  options?: UseQueryOptionsWrapper<
+    { data: Category },
+    Error,
+    ReturnType<CategoriesQueryKey["detail"]>
+  >,
+) => {
+  return useQuery({
+    queryKey: categoryKeys.detail(categoryId.toString()),
+    queryFn: () => api().category.detail(categoryId),
+    ...options,
+  });
 };
 
 export const useCreateCategory = (
-  options?: UseMutationOptions<Category, Error, NewCategory>,
+  options?: UseMutationOptions<Category, Error, CategoryInput>,
 ) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: NewCategory) => api().category.create(input),
+    mutationFn: (input: CategoryInput) => api().category.create(input),
     ...buildOptions(queryClient, [categoryKeys.lists()], options),
   });
 };
 
 export const useUpdateCategory = (
   categoryId: string,
-  options?: UseMutationOptions<Category, Error, UpdateCategoryInput>,
+  options?: UseMutationOptions<{ data: Category }, Error, CategoryInput>,
 ) => {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: UpdateCategoryInput) => api().category.update(input),
+  const { data, ...rest } = useMutation({
+    mutationFn: (input: CategoryInput) =>
+      api().category.update(categoryId, input),
     ...buildOptions(
       queryClient,
-      [categoryKeys.lists(), categoryKeys.detail(categoryId)],
+      [categoryKeys.lists(), categoryKeys.detail(categoryId.toString())],
       options,
     ),
   });
+  return { data: data?.data, ...rest };
 };

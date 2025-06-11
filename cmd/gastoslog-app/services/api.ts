@@ -19,14 +19,14 @@ export const CategorySchema = z.object({
   updatedAt: z.date(),
 });
 
-export const NewCategorySchema = CategorySchema.omit({
+export const CategoryInputSchema = CategorySchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
 export type Category = z.infer<typeof CategorySchema>;
-export type NewCategory = z.infer<typeof NewCategorySchema>;
+export type CategoryInput = z.infer<typeof CategoryInputSchema>;
 
 export type ListCategory = {
   category: Array<Category>;
@@ -37,8 +37,6 @@ export type CreateCategoryInput = {
   name: string;
   description?: string;
 };
-
-export type UpdateCategoryInput = CreateCategoryInput & { categoryId: number };
 
 export const api = (version = V1) => {
   return {
@@ -76,17 +74,29 @@ export const api = (version = V1) => {
           credentials: "include",
         });
       },
-      create: async (input: NewCategory) => {
+      detail: async (categoryId: string) => {
+        return await request<{ data: Category }>(
+          `${version}/categories/${categoryId}`,
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        );
+      },
+      create: async (input: CategoryInput) => {
         return await request(`${version}/categories`, {
           method: "POST",
           body: input,
         });
       },
-      update: async (input: UpdateCategoryInput) => {
-        return await request(`${version}/categories/${input.categoryId}`, {
-          method: "POST",
-          body: { name: input.name, description: input.description },
-        });
+      update: async (categoryId: string, input: CategoryInput) => {
+        return await request<{ data: Category }>(
+          `${version}/categories/${categoryId}`,
+          {
+            method: "POST",
+            body: { name: input.name, description: input.description },
+          },
+        );
       },
       delete: async (categoryId: number) => {
         return await request(`${version}/categories/${categoryId}`, {

@@ -52,7 +52,9 @@ export default function CategoryScreen() {
       <FlatList
         data={categoriesResult.category}
         renderItem={({ item }) => (
-          <ThemedText style={styles.item}>{item.name}</ThemedText>
+          <Link href={`/(auth)/(tabs)/category/${item.id}/edit`} asChild push>
+            <ThemedText style={styles.item}>{item.name}</ThemedText>
+          </Link>
         )}
       />
     </ThemedView>
