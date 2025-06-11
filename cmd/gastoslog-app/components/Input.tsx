@@ -6,6 +6,7 @@ import { PicoThemeVariables } from "@/styles/pico-lime";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { ThemedView } from "./ThemedView";
 import { ThemedText } from "./ThemedText";
+import { isLoading } from "expo-font";
 
 type InputErrorProps = {
   errors?: { [x: string]: unknown };
@@ -48,6 +49,7 @@ export interface InputProps extends TextInputProps {
   label?: string;
   required?: boolean;
   hasError?: boolean;
+  isLoading?: boolean;
 }
 
 export const Input = React.forwardRef<TextInput, InputProps>((props, ref) => {
@@ -110,6 +112,7 @@ export const Input = React.forwardRef<TextInput, InputProps>((props, ref) => {
             fontWeight: PicoThemeVariables.fontWeight,
             // transi
           },
+          props.isLoading ? { pointerEvents: "none" } : {},
           props.style,
         ]}
         placeholderTextColor={placeholderColor}
