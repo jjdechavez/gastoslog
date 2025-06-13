@@ -3,9 +3,6 @@ import { Link, useLocalSearchParams } from "expo-router";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { useCategories } from "@/hooks/categories/query";
-import { SearchBar } from "@/components/ui/SearchBar";
-import { Separator } from "@/components/Separator";
 import {
   PicoThemeVariables,
   PicoLimeStyles as pstyles,
@@ -16,12 +13,13 @@ import {
   FloatingButton,
   styles as floatingButtonStyle,
 } from "@/components/FloatingButton";
+import { useExpenses } from "@/services/api-hook/expense";
 
-export default function CategoryScreen() {
-  const categoriesResult = useCategories();
+export default function ExpenseScreen() {
+  const expenseResult = useExpenses();
   const params = useLocalSearchParams();
 
-  if (categoriesResult.status === "pending") {
+  if (expenseResult.status === "pending") {
     return (
       <ThemedView style={pstyles.container}>
         <ThemedText style={{ fontSize: 24 }}>Loading</ThemedText>
@@ -29,7 +27,7 @@ export default function CategoryScreen() {
     );
   }
 
-  if (categoriesResult.status === "error") {
+  if (expenseResult.status === "error") {
     return (
       <ThemedView style={pstyles.container}>
         <ThemedText style={{ fontSize: 24 }}>Error</ThemedText>
@@ -42,9 +40,6 @@ export default function CategoryScreen() {
       {params.success ? (
         <Alert type="success" message={params.success as string} />
       ) : null}
-      <SearchBar />
-
-      <Separator />
 
       <FloatingButton>
         <Link href="/(auth)/(tabs)/category/create" asChild push>
@@ -59,10 +54,10 @@ export default function CategoryScreen() {
       </FloatingButton>
 
       <FlatList
-        data={categoriesResult.data}
+        data={expenseResult.data.data}
         renderItem={({ item }) => (
           <Link href={`/(auth)/(tabs)/category/${item.id}/edit`} asChild push>
-            <ThemedText style={styles.item}>{item.name}</ThemedText>
+            <ThemedText style={styles.item}>{item.amount}</ThemedText>
           </Link>
         )}
       />
@@ -76,4 +71,4 @@ const styles = StyleSheet.create({
     fontSize: 18,
     height: 55,
   },
-});
+})
