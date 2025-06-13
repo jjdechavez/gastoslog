@@ -2,6 +2,18 @@ import { StyleSheet, Dimensions } from "react-native";
 
 const { width: screenWidth } = Dimensions.get("window");
 
+export const PicoColors = {
+  "lime-50": "rgb(222, 252, 133)",
+  "lime-100": "rgb(193, 243, 53)",
+  "lime-500": "rgb(98, 129, 0)",
+  "lime-800": "rgb(39, 53, 0)",
+
+  "red-50": "rgb(250, 238, 235)",
+  "red-100": "rgb(248, 220, 214)",
+  "red-500": "rgb(217, 53, 38)",
+  "red-800": "rgb(92, 22, 13)",
+};
+
 export const PicoThemeVariables = {
   // Typography
   fontFamily: "system-ui",
