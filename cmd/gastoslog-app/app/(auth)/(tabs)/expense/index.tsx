@@ -14,6 +14,7 @@ import {
   styles as floatingButtonStyle,
 } from "@/components/FloatingButton";
 import { useExpenses } from "@/services/api-hook/expense";
+import { fromCentToRegularPrice, toFormattedDate } from "@/services/string";
 
 export default function ExpenseScreen() {
   const expenseResult = useExpenses();
@@ -57,7 +58,24 @@ export default function ExpenseScreen() {
         data={expenseResult.data.data}
         renderItem={({ item }) => (
           <Link href={`/(auth)/(tabs)/category/${item.id}/edit`} asChild push>
-            <ThemedText style={styles.item}>{item.amount}</ThemedText>
+            <ThemedView
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <ThemedView style={styles.item}>
+                <ThemedText type="defaultSemiBold">
+                  {toFormattedDate(item.createdAt)}
+                </ThemedText>
+                <ThemedText type="muted">{item.category.name}</ThemedText>
+              </ThemedView>
+              <ThemedText>
+                -{fromCentToRegularPrice(item.amount, { type: "withDecimal" })}
+              </ThemedText>
+            </ThemedView>
           </Link>
         )}
       />
@@ -67,8 +85,8 @@ export default function ExpenseScreen() {
 
 const styles = StyleSheet.create({
   item: {
-    padding: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     fontSize: 18,
-    height: 55,
   },
-})
+});

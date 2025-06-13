@@ -44,7 +44,7 @@ export const ExpenseSchema = z.object({
   id: z.number().nonnegative(),
   amount: z.int({ error: "Amount is required" }).min(1, { error: "Minimum 1" }),
   description: z.string().optional().nullable(),
-  createdAt: z.date(),
+  createdAt: z.iso.date(),
   updatedAt: z.date(),
   categoryId: CategorySchema.shape.id,
   category: CategorySchema,

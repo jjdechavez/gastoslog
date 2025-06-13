@@ -192,7 +192,7 @@ export const PicoLimeStyles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: PicoThemeVariables.spacing,
-    paddingTop: 52,
+    paddingTop: 32,
   },
   section: {
     paddingVertical: 24,
