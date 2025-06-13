@@ -10,9 +10,9 @@ export default function CreateCategoryScreen() {
       router.push({
         pathname: "/(auth)/(tabs)/category",
         params: {
-          success: "Category has been created!"
-        }
-      })
+          success: "Category has been created!",
+        },
+      });
     },
   });
 

@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
+import { FlatList, StyleSheet, TouchableOpacity } from "react-native";
 import { Link, useLocalSearchParams } from "expo-router";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -12,6 +12,10 @@ import {
 } from "@/styles/pico-lime";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Alert } from "@/components/Alert";
+import {
+  FloatingButton,
+  styles as floatingButtonStyle,
+} from "@/components/FloatingButton";
 
 export default function CategoryScreen() {
   const categoriesResult = useCategories();
@@ -42,9 +46,9 @@ export default function CategoryScreen() {
 
       <Separator />
 
-      <View style={styles.floatingButtonContainer}>
+      <FloatingButton>
         <Link href="/(auth)/(tabs)/category/create" asChild push>
-          <TouchableOpacity style={styles.floatingButton}>
+          <TouchableOpacity style={floatingButtonStyle.button}>
             <IconSymbol
               name="plus"
               color={PicoThemeVariables.primaryColor}
@@ -52,7 +56,7 @@ export default function CategoryScreen() {
             />
           </TouchableOpacity>
         </Link>
-      </View>
+      </FloatingButton>
 
       <FlatList
         data={categoriesResult.category}
@@ -71,26 +75,5 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 18,
     height: 55,
-  },
-  floatingButtonContainer: {
-    position: "absolute",
-    bottom: 35,
-    right: 25,
-  },
-  floatingButton: {
-    backgroundColor: PicoThemeVariables.primaryBackground,
-    elevation: 5, // For Android shadow
-    shadowColor: "#000", // For iOS shadow
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-
-    zIndex: 1,
-    height: 56,
-    width: 56,
-    borderRadius: 100,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
   },
 });
