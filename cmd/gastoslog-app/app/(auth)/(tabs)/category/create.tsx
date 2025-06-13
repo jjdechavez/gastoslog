@@ -7,7 +7,12 @@ export default function CreateCategoryScreen() {
   const router = useRouter();
   const mutation = useCreateCategory({
     onSuccess: () => {
-      router.push("/(auth)/(tabs)/category");
+      router.push({
+        pathname: "/(auth)/(tabs)/category",
+        params: {
+          success: "Category has been created!"
+        }
+      })
     },
   });
 

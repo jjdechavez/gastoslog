@@ -38,6 +38,7 @@ export function Alert(props: AlertProps) {
         backgroundColor: color?.backgroundColor,
         padding: 16,
         borderRadius: PicoThemeVariables.borderRadius,
+        marginBottom: 16,
       }}
     >
       <View

@@ -1,5 +1,5 @@
 import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
-import { Link } from "expo-router";
+import { Link, useLocalSearchParams } from "expo-router";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -11,9 +11,11 @@ import {
   PicoLimeStyles as pstyles,
 } from "@/styles/pico-lime";
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import { Alert } from "@/components/Alert";
 
 export default function CategoryScreen() {
   const categoriesResult = useCategories();
+  const params = useLocalSearchParams();
 
   if (categoriesResult.status === "pending") {
     return (
@@ -33,6 +35,9 @@ export default function CategoryScreen() {
 
   return (
     <ThemedView style={pstyles.container}>
+      {params.success ? (
+        <Alert type="success" message={params.success as string} />
+      ) : null}
       <SearchBar />
 
       <Separator />

@@ -19,7 +19,6 @@ export default function EditCategoryScreen() {
   const { categoryId } = useLocalSearchParams();
 
   const { data, status } = useCategory(categoryId as string);
-  console.log({ useData: data })
 
   const mutation = useUpdateCategory(categoryId as string, {
     onSuccess: (updatedCategory) => {
@@ -27,7 +26,12 @@ export default function EditCategoryScreen() {
         categoryKeys.detail(categoryId as string),
         updatedCategory,
       );
-      router.push("/(auth)/(tabs)/category");
+      router.push({
+        pathname: "/(auth)/(tabs)/category",
+        params: {
+          success: "Changes were successfully saved!",
+        },
+      });
     },
   });
 
