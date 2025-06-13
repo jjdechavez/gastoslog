@@ -28,15 +28,31 @@ export const CategoryInputSchema = CategorySchema.omit({
 export type Category = z.infer<typeof CategorySchema>;
 export type CategoryInput = z.infer<typeof CategoryInputSchema>;
 
-export type ListCategory = {
-  category: Array<Category>;
+export type ListResponse<T> = {
+  data: Array<T>;
   meta: ListMeta;
 };
+
+export type ListCategory = ListResponse<Category>;
 
 export type CreateCategoryInput = {
   name: string;
   description?: string;
 };
+
+export const ExpenseSchema = z.object({
+  id: z.number().nonnegative(),
+  amount: z.int({ error: "Amount is required" }).min(1, { error: "Minimum 1" }),
+  description: z.string().optional().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  categoryId: CategorySchema.shape.id,
+  category: CategorySchema,
+});
+
+export type Expense = z.infer<typeof ExpenseSchema>;
+
+export type ListExpense = ListResponse<Expense>;
 
 export const api = (version = V1) => {
   return {
@@ -101,6 +117,14 @@ export const api = (version = V1) => {
       delete: async (categoryId: number) => {
         return await request(`${version}/categories/${categoryId}`, {
           method: "DELETE",
+        });
+      },
+    },
+    expense: {
+      list: async () => {
+        return await request<ListExpense>(`${version}/expenses`, {
+          method: "GET",
+          credentials: "include",
         });
       },
     },
