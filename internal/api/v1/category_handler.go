@@ -56,8 +56,8 @@ type ListCategoryInput struct {
 
 type ListCategoryOutput struct {
 	Body struct {
-		Category []CategoryResponse `json:"category" doc:"List of Categories"`
-		Meta     struct {
+		Data []CategoryResponse `json:"data" doc:"List of Categories"`
+		Meta struct {
 			Page  int `json:"page" doc:"Page number of pagination"`
 			Limit int `json:"limit" doc:"Limit per page of pagination"`
 		} `json:"meta"`
@@ -81,7 +81,7 @@ func (c *CategoryHandler) ListCategory(ctx context.Context, input *ListCategoryI
 	}
 
 	resp := &ListCategoryOutput{}
-	resp.Body.Category = toCategoryResponseList(list)
+	resp.Body.Data = toCategoryResponseList(list)
 	resp.Body.Meta.Page = input.Page
 	resp.Body.Meta.Limit = input.Limit
 

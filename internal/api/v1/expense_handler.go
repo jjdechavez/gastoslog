@@ -70,8 +70,8 @@ type ListExpenseInput struct {
 
 type ListExpenseOutput struct {
 	Body struct {
-		Expense []ExpenseResponse `json:"expense" doc:"List of Expenses"`
-		Meta    struct {
+		Data []ExpenseResponse `json:"data" doc:"List of Expenses"`
+		Meta struct {
 			Page  int `json:"page" doc:"Page number of pagination"`
 			Limit int `json:"limit" doc:"Limit per page of pagination"`
 		} `json:"meta"`
@@ -96,7 +96,7 @@ func (c *ExpenseHandler) ListExpense(ctx context.Context, input *ListExpenseInpu
 	}
 
 	resp := &ListExpenseOutput{}
-	resp.Body.Expense = toExpenseResponseList(list)
+	resp.Body.Data = toExpenseResponseList(list)
 	resp.Body.Meta.Page = input.Page
 	resp.Body.Meta.Limit = input.Limit
 
