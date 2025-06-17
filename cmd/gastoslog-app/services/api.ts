@@ -145,6 +145,33 @@ export const api = (version = V1) => {
           body: input,
         });
       },
+      detail: async (expenseId: string) => {
+        return await request<{ data: Expense }>(
+          `${version}/expenses/${expenseId}`,
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        );
+      },
+      update: async (expenseId: string, input: ExpenseInput) => {
+        return await request<{ data: Expense }>(
+          `${version}/expenses/${expenseId}`,
+          {
+            method: "POST",
+            body: {
+              amount: input.amount,
+              categoryId: input.categoryId,
+              description: input.description,
+            },
+          },
+        );
+      },
+      delete: async (expenseId: string) => {
+        return await request(`${version}/expenses/${expenseId}`, {
+          method: "DELETE",
+        });
+      },
     },
   };
 };
