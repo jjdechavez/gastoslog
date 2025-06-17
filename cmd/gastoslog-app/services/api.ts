@@ -42,7 +42,10 @@ export type CreateCategoryInput = {
 
 export const ExpenseSchema = z.object({
   id: z.number().nonnegative(),
-  amount: z.int({ error: "Amount is required" }).min(1, { error: "Minimum 1" }),
+  amount: z.coerce
+    .number({ error: "Amount is required" })
+    .positive()
+    .min(1, { error: "Minimum 1" }),
   description: z.string().optional().nullable(),
   createdAt: z.iso.date(),
   updatedAt: z.date(),
@@ -53,6 +56,15 @@ export const ExpenseSchema = z.object({
 export type Expense = z.infer<typeof ExpenseSchema>;
 
 export type ListExpense = ListResponse<Expense>;
+
+export const ExpenseInputSchema = ExpenseSchema.omit({
+  id: true,
+  category: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type ExpenseInput = z.infer<typeof ExpenseInputSchema>;
 
 export const api = (version = V1) => {
   return {
@@ -125,6 +137,12 @@ export const api = (version = V1) => {
         return await request<ListExpense>(`${version}/expenses`, {
           method: "GET",
           credentials: "include",
+        });
+      },
+      create: async (input: ExpenseInput) => {
+        return await request(`${version}/expenses`, {
+          method: "POST",
+          body: input,
         });
       },
     },
