@@ -43,7 +43,7 @@ export default function ExpenseScreen() {
       ) : null}
 
       <FloatingButton>
-        <Link href="/(auth)/(tabs)/category/create" asChild push>
+        <Link href="/(auth)/(tabs)/expense/create" asChild push>
           <TouchableOpacity style={floatingButtonStyle.button}>
             <IconSymbol
               name="plus"
