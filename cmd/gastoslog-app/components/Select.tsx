@@ -4,7 +4,7 @@ import { PicoThemeVariables } from "@/styles/pico-lime";
 import { useThemeColor } from "@/hooks/useThemeColor";
 
 export interface SelectProps extends PickerProps {
-  values: Array<{ label: string; value: any }>;
+  options: Array<{ label: string; value: any }>;
   hasError?: boolean;
 }
 
@@ -39,9 +39,13 @@ export const Select = React.forwardRef<Picker<{}>, SelectProps>(
         }}
         {...props}
       >
-        <Picker.Item label="Option 1" value="option1" />
-        <Picker.Item label="Option 2" value="option2" />
-        <Picker.Item label="Option 3" value="option3" />
+        {(props.options || []).map((option) => (
+          <Picker.Item
+            key={option.value}
+            label={option.label}
+            value={option.value}
+          />
+        ))}
       </Picker>
     );
   },
