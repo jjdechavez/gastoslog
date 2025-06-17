@@ -3,7 +3,6 @@ import { Link, useLocalSearchParams } from "expo-router";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { useCategories } from "@/hooks/categories/query";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { Separator } from "@/components/Separator";
 import {
@@ -16,6 +15,7 @@ import {
   FloatingButton,
   styles as floatingButtonStyle,
 } from "@/components/FloatingButton";
+import { useCategories } from "@/services/api-hook/category";
 
 export default function CategoryScreen() {
   const categoriesResult = useCategories();
@@ -59,7 +59,7 @@ export default function CategoryScreen() {
       </FloatingButton>
 
       <FlatList
-        data={categoriesResult.data}
+        data={categoriesResult.data.data}
         renderItem={({ item }) => (
           <Link href={`/(auth)/(tabs)/category/${item.id}/edit`} asChild push>
             <ThemedText style={styles.item}>{item.name}</ThemedText>

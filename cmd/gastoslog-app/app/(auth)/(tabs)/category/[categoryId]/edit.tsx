@@ -8,10 +8,13 @@ import { Input, InputError } from "@/components/Input";
 import { ThemedView } from "@/components/ThemedView";
 import { PicoLimeStyles } from "@/styles/pico-lime";
 import { Category, CategoryInput, CategoryInputSchema } from "@/services/api";
-import { useCategory, useUpdateCategory } from "@/services/api-hook/category";
+import {
+  categoryKeys,
+  useCategory,
+  useUpdateCategory,
+} from "@/services/api-hook/category";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
-import { categoryKeys } from "@/hooks/categories/query";
 import { Fieldset, Label } from "@/components/Fieldset";
 
 export default function EditCategoryScreen() {
