@@ -266,6 +266,7 @@ func toExpenseResponse(expense database.RawExpense) ExpenseResponse {
 		Amount:      expense.Amount,
 		Description: description,
 		Category:    *category,
+		CategoryID:  expense.CategoryID,
 		CreatedAt:   expense.CreatedAt,
 		UpdatedAt:   expense.UpdatedAt,
 	}
