@@ -197,6 +197,46 @@ func (c *ExpenseHandler) DeleteExpense(ctx context.Context, input *DeleteExpense
 	return nil, nil
 }
 
+type DetailExpenseInput struct {
+	ExpenseID int `path:"expenseId" doc:"Expense ID"`
+}
+
+type DetailExpenseOutput struct {
+	Body struct {
+		Data ExpenseResponse `json:"data" doc:"Expense detail"`
+	}
+}
+
+func (c *ExpenseHandler) DetailExpense(ctx context.Context, input *DetailExpenseInput) (*DetailExpenseOutput, error) {
+	userID, err := middleware.GetContextUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	exist, err := c.expenseRepository.ExistWithUserID(ctx, database.ExistExpenseWithUserIDInput{
+		UserID:    int64(userID),
+		ExpenseID: int64(input.ExpenseID),
+	})
+
+	if err != nil {
+		return nil, huma.Error500InternalServerError("Failed to list expenses", err)
+	}
+
+	if !exist {
+		return nil, huma.Error404NotFound("Expense not found")
+	}
+
+	detail, err := c.expenseRepository.GetByID(ctx, int64(input.ExpenseID))
+	if err != nil {
+		return nil, huma.Error500InternalServerError("Failed to get expense", err)
+	}
+
+	resp := &DetailExpenseOutput{}
+	resp.Body.Data = toExpenseResponse(*detail)
+
+	return resp, nil
+}
+
 type ExpenseResponse struct {
 	ID          int64            `json:"id"`
 	Amount      int64            `json:"amount"`
