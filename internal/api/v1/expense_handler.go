@@ -114,7 +114,7 @@ type UpdateExpenseInput struct {
 
 type UpdatedExpenseOutput struct {
 	Body struct {
-		Expense ExpenseResponse `json:"expense" doc:"Expense updated successfully"`
+		Data ExpenseResponse `json:"data" doc:"Expense updated successfully"`
 	}
 }
 
@@ -159,7 +159,7 @@ func (c *ExpenseHandler) UpdateExpense(ctx context.Context, input *UpdateExpense
 	}
 
 	resp := &UpdatedExpenseOutput{}
-	resp.Body.Expense = toExpenseResponse(*updatedExpense)
+	resp.Body.Data = toExpenseResponse(*updatedExpense)
 	return resp, nil
 }
 
