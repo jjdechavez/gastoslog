@@ -103,6 +103,7 @@ func (r *expenseRepository) GetByID(ctx context.Context, id int64) (*RawExpense,
 }
 
 type UpdateExpenseInput struct {
+	ExpenseID   int64
 	CategoryID  int64
 	UserID      int64
 	Amount      int64
@@ -114,12 +115,18 @@ func (r *expenseRepository) Update(ctx context.Context, updateWith UpdateExpense
 		UPDATE expenses
 		SET amount = $1,
 			description = $2,
-			updated_at = $3
-		WHERE id = $4 AND user_id = $5`
+			updated_at = $3,
+			category_id = $4
+		WHERE id = $5 AND user_id = $6`
 
 	now := time.Now()
+	description := ""
+	if updateWith.Description != "" {
+		description = updateWith.Description
+	}
+
 	_, err := r.db.ExecContext(ctx, query,
-		updateWith.Amount, sql.NullString{String: updateWith.Description}, now, updateWith.CategoryID, updateWith.UserID,
+		updateWith.Amount, description, now, updateWith.CategoryID, updateWith.ExpenseID, updateWith.UserID,
 	)
 	return err
 }

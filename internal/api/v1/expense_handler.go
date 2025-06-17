@@ -146,7 +146,7 @@ func (c *ExpenseHandler) UpdateExpense(ctx context.Context, input *UpdateExpense
 	}
 
 	amountCents := int64(input.Body.Amount * 100)
-	payload := &database.UpdateExpenseInput{CategoryID: input.Body.CategoryID, UserID: int64(userID), Amount: amountCents, Description: input.Body.Description}
+	payload := &database.UpdateExpenseInput{ExpenseID: expenseID, CategoryID: input.Body.CategoryID, UserID: int64(userID), Amount: amountCents, Description: input.Body.Description}
 
 	err = c.expenseRepository.Update(ctx, *payload)
 	if err != nil {
