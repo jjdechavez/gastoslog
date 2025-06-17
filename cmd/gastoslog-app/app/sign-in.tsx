@@ -8,6 +8,7 @@ import { HGroup } from "@/components/HGroup";
 import { Input } from "@/components/Input";
 import { Button, ButtonText } from "@/components/Button";
 import { PicoThemeVariables } from "@/styles/pico-lime";
+import { Fieldset } from "@/components/Fieldset";
 
 export default function SignInScreen() {
   const { signIn } = useSession();
@@ -30,20 +31,24 @@ export default function SignInScreen() {
         style={styles.hgroup}
       />
 
-      <Input
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        autoCorrect={false}
-      />
+      <Fieldset>
+        <Input
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </Fieldset>
 
-      <Input
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+      <Fieldset>
+        <Input
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+      </Fieldset>
 
       <Button onPress={handleSignin}>
         <ButtonText>Sign In</ButtonText>

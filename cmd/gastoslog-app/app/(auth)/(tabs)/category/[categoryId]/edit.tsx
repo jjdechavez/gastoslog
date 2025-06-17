@@ -12,6 +12,7 @@ import { useCategory, useUpdateCategory } from "@/services/api-hook/category";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { categoryKeys } from "@/hooks/categories/query";
+import { Fieldset, Label } from "@/components/Fieldset";
 
 export default function EditCategoryScreen() {
   const router = useRouter();
@@ -93,17 +94,18 @@ export function CategoryForm(props: CategoryFormProps) {
         control={control}
         render={({ field: { onChange, onBlur, value }, formState }) => {
           return (
-            <Input
-              label="Name"
-              placeholder="Name"
-              autoCapitalize="none"
-              required
-              onChangeText={onChange}
-              onBlur={onBlur}
-              value={value}
-              hasError={!!formState.errors.name}
-              isLoading={formState.isSubmitting}
-            />
+            <Fieldset>
+              <Label name="Name" required />
+              <Input
+                placeholder="Name"
+                autoCapitalize="none"
+                onChangeText={onChange}
+                onBlur={onBlur}
+                value={value}
+                hasError={!!formState.errors.name}
+                isLoading={formState.isSubmitting}
+              />
+            </Fieldset>
           );
         }}
       />
@@ -114,15 +116,17 @@ export function CategoryForm(props: CategoryFormProps) {
         name="description"
         render={({ field: { onChange, onBlur, value } }) => {
           return (
-            <Input
-              label="Description"
-              placeholder="Description"
-              autoCapitalize="none"
-              onChangeText={onChange}
-              onBlur={onBlur}
-              value={value ?? ""}
-              isLoading={formState.isSubmitting}
-            />
+            <Fieldset>
+              <Label name="Description" />
+              <Input
+                placeholder="Description"
+                autoCapitalize="none"
+                onChangeText={onChange}
+                onBlur={onBlur}
+                value={value ?? ""}
+                isLoading={formState.isSubmitting}
+              />
+            </Fieldset>
           );
         }}
       />
