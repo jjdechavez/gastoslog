@@ -135,7 +135,7 @@ export function CategoryForm(props: CategoryFormProps) {
       />
       <InputError name="description" errors={formState.errors} />
 
-      <Button onPress={onSubmit}>
+      <Button onPressIn={onSubmit}>
         <ButtonText>
           {props.action === "create" ? "Create" : "Update"} category
         </ButtonText>

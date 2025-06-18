@@ -47,7 +47,7 @@ export default function CategoryScreen() {
       <Separator />
 
       <FloatingButton>
-        <Link href="/(auth)/(tabs)/category/create" asChild push>
+        <Link href="/(auth)/category/create" asChild push>
           <TouchableOpacity style={floatingButtonStyle.button}>
             <IconSymbol
               name="plus"
@@ -61,7 +61,7 @@ export default function CategoryScreen() {
       <FlatList
         data={categoriesResult.data.data}
         renderItem={({ item }) => (
-          <Link href={`/(auth)/(tabs)/category/${item.id}/edit`} asChild push>
+          <Link href={`/(auth)/category/${item.id}/edit`} asChild push>
             <ThemedText style={styles.item}>{item.name}</ThemedText>
           </Link>
         )}
