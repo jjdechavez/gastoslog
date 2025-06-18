@@ -131,7 +131,7 @@ export function ExpenseForm(props: ExpenseFormProps) {
       />
       <InputError name="description" errors={formState.errors} />
 
-      <Button onPress={onSubmit}>
+      <Button onPressIn={onSubmit}>
         <ButtonText>
           {props.action === "create" ? "Create" : "Update"} expense
         </ButtonText>
