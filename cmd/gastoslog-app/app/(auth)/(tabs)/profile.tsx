@@ -1,15 +1,19 @@
-import { ThemedText } from "@/components/ThemedText";
+import { HGroup } from "@/components/HGroup";
+import { ThemedView } from "@/components/ThemedView";
 import { useSession } from "@/context/session";
-import { View, Text, TouchableOpacity } from "react-native";
+import { PicoLimeStyles } from "@/styles/pico-lime";
+import { Button, ButtonText } from "@/components/Button";
 
 export default function ProfileScreen() {
   const { signOut } = useSession();
+
   return (
-    <View>
-      <Text>Profile screen</Text>
-      <TouchableOpacity onPress={signOut}>
-        <ThemedText>Sign Out</ThemedText>
-      </TouchableOpacity>
-    </View>
+    <ThemedView style={PicoLimeStyles.container}>
+      <HGroup title="Profile" style={{ marginTop: 24 }} />
+
+      <Button onPress={signOut}>
+        <ButtonText>Sign Out</ButtonText>
+      </Button>
+    </ThemedView>
   );
 }
