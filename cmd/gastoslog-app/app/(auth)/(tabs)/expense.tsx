@@ -43,7 +43,7 @@ export default function ExpenseScreen() {
       ) : null}
 
       <FloatingButton>
-        <Link href="/(auth)/(tabs)/expense/create" asChild push>
+        <Link href="/(auth)/expense/create" asChild push>
           <TouchableOpacity style={floatingButtonStyle.button}>
             <IconSymbol
               name="plus"
@@ -57,7 +57,7 @@ export default function ExpenseScreen() {
       <FlatList
         data={expenseResult.data.data}
         renderItem={({ item }) => (
-          <Link href={`/(auth)/(tabs)/category/${item.id}/edit`} asChild push>
+          <Link href={`/(auth)/expense/${item.id}/edit`} push>
             <ThemedView
               style={{
                 display: "flex",
@@ -89,4 +89,4 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 18,
   },
-});
+})

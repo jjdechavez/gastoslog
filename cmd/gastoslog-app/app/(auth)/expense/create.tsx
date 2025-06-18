@@ -3,6 +3,7 @@ import { Fieldset, Label } from "@/components/Fieldset";
 import { HGroup } from "@/components/HGroup";
 import { Input, InputError } from "@/components/Input";
 import { Select } from "@/components/Select";
+import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import {
   Category,
@@ -12,6 +13,7 @@ import {
 } from "@/services/api";
 import { useCategories } from "@/services/api-hook/category";
 import { useCreateExpense } from "@/services/api-hook/expense";
+import { fromCentToRegularPrice } from "@/services/string";
 import { PicoLimeStyles } from "@/styles/pico-lime";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
@@ -38,19 +40,20 @@ export function ExpenseForm(props: ExpenseFormProps) {
   if (props.action === "edit") {
     title = "Edit Expense";
   }
-
   const { control, formState, handleSubmit } = useForm({
     defaultValues:
       props.action === "edit"
         ? {
-            amount: props.expense.amount,
+            amount: fromCentToRegularPrice(props.expense.amount),
             description: props.expense.description,
-            categoryId: props.expense.categoryId,
+            categoryId: props.expense.category.id,
           }
         : {
             amount: undefined,
             description: "",
-            categoryId: undefined,
+            categoryId: props.categories
+              ? props.categories?.[0]?.id
+              : undefined,
           },
     resolver: zodResolver(ExpenseInputSchema),
   });
@@ -153,7 +156,6 @@ export default function CreateExpenseScreen() {
   });
 
   const onSubmit = (payload: ExpenseInput) => {
-    console.log({ payload });
     mutation.mutate(payload);
   };
 
@@ -167,5 +169,5 @@ export default function CreateExpenseScreen() {
     );
   }
 
-  return "Loading";
+  return <ThemedText>Loading</ThemedText>;
 }
