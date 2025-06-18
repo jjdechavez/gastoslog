@@ -48,3 +48,34 @@ export const useCreateExpense = (
     ...buildOptions(queryClient, [expenseKeys.lists()], options),
   });
 };
+
+export const useExpense = (
+  expenseId: string,
+  options?: UseQueryOptionsWrapper<
+    { data: Expense },
+    Error,
+    ReturnType<ExpensesQueryKey["detail"]>
+  >,
+) => {
+  return useQuery({
+    queryKey: expenseKeys.detail(expenseId),
+    queryFn: () => api().expense.detail(expenseId),
+    ...options,
+  });
+};
+
+export const useUpdateExpense = (
+  expenseId: string,
+  options?: UseMutationOptions<{ data: Expense }, Error, ExpenseInput>,
+) => {
+  const queryClient = useQueryClient();
+  const { data, ...rest } = useMutation({
+    mutationFn: (input: ExpenseInput) => api().expense.update(expenseId, input),
+    ...buildOptions(
+      queryClient,
+      [expenseKeys.lists(), expenseKeys.detail(expenseId)],
+      options,
+    ),
+  });
+  return { data: data?.data, ...rest };
+};
