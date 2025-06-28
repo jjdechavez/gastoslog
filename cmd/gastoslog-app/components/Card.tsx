@@ -3,7 +3,7 @@ import { ThemedView, type ThemedViewProps } from "./ThemedView";
 import { useThemeColor } from "@/hooks/useThemeColor";
 
 export function Card(props: ThemedViewProps) {
-  const backgroundColor = useThemeColor({}, "background");
+  const backgroundColor = useThemeColor({}, "cardBackground");
   return (
     <ThemedView
       style={{
