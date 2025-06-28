@@ -170,6 +170,15 @@ func (s *Server) RegisterRoutes() http.Handler {
 		Security:    bearerSecurity,
 	}, expenseHandler.DetailExpense)
 
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "expense-overview",
+		Method:      http.MethodGet,
+		Path:        "/expenses/overview",
+		Summary:     "Get expense overview by category",
+		Tags:        []string{"Expense"},
+		Security:    bearerSecurity,
+	}, expenseHandler.GetExpenseOverview)
+
 	return r
 }
 

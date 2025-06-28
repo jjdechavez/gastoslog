@@ -213,26 +213,93 @@ func (c *ExpenseHandler) DetailExpense(ctx context.Context, input *DetailExpense
 		return nil, err
 	}
 
+	expenseID := int64(input.ExpenseID)
+
 	exist, err := c.expenseRepository.ExistWithUserID(ctx, database.ExistExpenseWithUserIDInput{
 		UserID:    int64(userID),
-		ExpenseID: int64(input.ExpenseID),
+		ExpenseID: expenseID,
 	})
-
 	if err != nil {
-		return nil, huma.Error500InternalServerError("Failed to list expenses", err)
+		return nil, err
 	}
-
 	if !exist {
 		return nil, huma.Error404NotFound("Expense not found")
 	}
 
-	detail, err := c.expenseRepository.GetByID(ctx, int64(input.ExpenseID))
+	expense, err := c.expenseRepository.GetByID(ctx, expenseID)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("Failed to get expense", err)
 	}
 
 	resp := &DetailExpenseOutput{}
-	resp.Body.Data = toExpenseResponse(*detail)
+	resp.Body.Data = toExpenseResponse(*expense)
+	return resp, nil
+}
+
+type ExpenseOverviewInput struct {
+	Period string `query:"period" enum:"today,month,year" default:"today" doc:"Period for overview (today, month, year)"`
+}
+
+type ExpenseOverviewOutput struct {
+	Body struct {
+		Data         []CategoryExpenseOverviewResponse `json:"data" doc:"Expense overview by category"`
+		OverviewMeta struct {
+			Period      string `json:"period" doc:"Period of the overview"`
+			TotalAmount int64  `json:"totalAmount" doc:"Total amount for the period"`
+			TotalCount  int64  `json:"totalCount" doc:"Total number of expenses for the period"`
+		} `json:"meta"`
+	}
+}
+
+type CategoryExpenseOverviewResponse struct {
+	CategoryID   int64   `json:"categoryId"`
+	CategoryName string  `json:"categoryName"`
+	TotalAmount  float64 `json:"totalAmount"`
+	Count        int64   `json:"count"`
+	Percentage   float64 `json:"percentage"`
+}
+
+func (c *ExpenseHandler) GetExpenseOverview(ctx context.Context, input *ExpenseOverviewInput) (*ExpenseOverviewOutput, error) {
+	userID, err := middleware.GetContextUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	overviews, err := c.expenseRepository.GetOverviewByCategory(ctx, int64(userID), input.Period)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("Failed to get expense overview", err)
+	}
+
+	// Calculate totals
+	var totalAmount int64
+	var totalCount int64
+	for _, overview := range overviews {
+		totalAmount += overview.TotalAmount
+		totalCount += overview.Count
+	}
+
+	// Convert to response format
+	responses := make([]CategoryExpenseOverviewResponse, len(overviews))
+	for i, overview := range overviews {
+		percentage := 0.0
+		if totalAmount > 0 {
+			percentage = float64(overview.TotalAmount) / float64(totalAmount) * 100
+		}
+
+		responses[i] = CategoryExpenseOverviewResponse{
+			CategoryID:   overview.CategoryID,
+			CategoryName: overview.CategoryName,
+			TotalAmount:  float64(overview.TotalAmount) / 100, // Convert cents to dollars
+			Count:        overview.Count,
+			Percentage:   percentage,
+		}
+	}
+
+	resp := &ExpenseOverviewOutput{}
+	resp.Body.Data = responses
+	resp.Body.OverviewMeta.Period = input.Period
+	resp.Body.OverviewMeta.TotalAmount = totalAmount
+	resp.Body.OverviewMeta.TotalCount = totalCount
 
 	return resp, nil
 }

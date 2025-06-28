@@ -28,6 +28,7 @@ type ExpenseRepository interface {
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, input ListExpenseInput) ([]RawExpense, error)
 	ExistWithUserID(ctx context.Context, input ExistExpenseWithUserIDInput) (bool, error)
+	GetOverviewByCategory(ctx context.Context, userID int64, period string) ([]CategoryExpenseOverview, error)
 }
 
 type expenseRepository struct {
@@ -224,4 +225,83 @@ func (r *expenseRepository) ExistWithUserID(ctx context.Context, input ExistExpe
 	}
 
 	return count > 0, nil
+}
+
+type CategoryExpenseOverview struct {
+	CategoryID   int64  `db:"category_id"`
+	CategoryName string `db:"category_name"`
+	TotalAmount  int64  `db:"total_amount"`
+	Count        int64  `db:"count"`
+}
+
+func (r *expenseRepository) GetOverviewByCategory(ctx context.Context, userID int64, period string) ([]CategoryExpenseOverview, error) {
+	var query string
+	var args []interface{}
+
+	switch period {
+	case "today":
+		query = `
+			SELECT 
+				c.id as category_id,
+				c.name as category_name,
+				SUM(e.amount) as total_amount,
+				COUNT(e.id) as count
+			FROM categories c
+			INNER JOIN expenses e ON c.id = e.category_id 
+				AND e.user_id = $1 
+				AND e.deleted_at IS NULL
+				AND DATE(e.created_at) = CURRENT_DATE
+			WHERE c.user_id = $1 
+				AND c.deleted_at IS NULL
+			GROUP BY c.id, c.name
+			ORDER BY total_amount DESC
+		`
+		args = []interface{}{userID}
+	case "month":
+		query = `
+			SELECT 
+				c.id as category_id,
+				c.name as category_name,
+				SUM(e.amount) as total_amount,
+				COUNT(e.id) as count
+			FROM categories c
+			INNER JOIN expenses e ON c.id = e.category_id 
+				AND e.user_id = $1 
+				AND e.deleted_at IS NULL
+				AND DATE_TRUNC('month', e.created_at) = DATE_TRUNC('month', CURRENT_DATE)
+			WHERE c.user_id = $1 
+				AND c.deleted_at IS NULL
+			GROUP BY c.id, c.name
+			ORDER BY total_amount DESC
+		`
+		args = []interface{}{userID}
+	case "year":
+		query = `
+			SELECT 
+				c.id as category_id,
+				c.name as category_name,
+				SUM(e.amount) as total_amount,
+				COUNT(e.id) as count
+			FROM categories c
+			INNER JOIN expenses e ON c.id = e.category_id 
+				AND e.user_id = $1 
+				AND e.deleted_at IS NULL
+				AND DATE_TRUNC('year', e.created_at) = DATE_TRUNC('year', CURRENT_DATE)
+			WHERE c.user_id = $1 
+				AND c.deleted_at IS NULL
+			GROUP BY c.id, c.name
+			ORDER BY total_amount DESC
+		`
+		args = []interface{}{userID}
+	default:
+		return nil, errors.New("invalid period. Must be 'today', 'month', or 'year'")
+	}
+
+	var overviews []CategoryExpenseOverview
+	err := r.db.SelectContext(ctx, &overviews, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return overviews, nil
 }
