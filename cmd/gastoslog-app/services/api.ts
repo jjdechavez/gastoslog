@@ -57,6 +57,21 @@ export type Expense = z.infer<typeof ExpenseSchema>;
 
 export type ListExpense = ListResponse<Expense>;
 
+export type ExpenseOverviewResponse = {
+  data: Array<{
+    categoryId: number;
+    categoryName: string;
+    totalAmount: number;
+    count: number;
+    percentage: number;
+  }>;
+  meta: {
+    period: string;
+    totalAmount: number;
+    totalCount: number;
+  };
+};
+
 export const ExpenseInputSchema = ExpenseSchema.omit({
   id: true,
   category: true,
@@ -138,6 +153,15 @@ export const api = (version = V1) => {
           method: "GET",
           credentials: "include",
         });
+      },
+      overview: async (period: "today" | "month" | "year" = "today") => {
+        return await request<ExpenseOverviewResponse>(
+          `${version}/expenses/overview?period=${period}`,
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        );
       },
       create: async (input: ExpenseInput) => {
         return await request(`${version}/expenses`, {
