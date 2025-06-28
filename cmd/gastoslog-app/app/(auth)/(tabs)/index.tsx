@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import { StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView, TScrollView } from "@/components/ThemedView";
 import { Card } from "@/components/Card";
 import { api } from "@/services/api";
 import type { ExpenseOverviewResponse } from "@/services/api";
-import { PicoLimeStyles } from "@/styles/pico-lime";
+import { PicoLimeStyles, PicoThemeVariables } from "@/styles/pico-lime";
 import { HGroup } from "@/components/HGroup";
 import { ButtonText } from "@/components/Button";
 
@@ -202,8 +198,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   periodButtonActive: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
+    backgroundColor: PicoThemeVariables.primaryBackground,
+    borderColor: PicoThemeVariables.primaryBorder,
   },
   periodButtonText: {
     fontWeight: "600",
@@ -221,7 +217,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   totalAmount: {
-    color: "#007AFF",
+    color: PicoThemeVariables.primaryBackground,
   },
   categoriesSection: {
     gap: 12,
@@ -250,7 +246,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoryAmount: {
-    color: "#007AFF",
+    color: PicoThemeVariables.primaryBackground,
   },
   categoryDetails: {
     flexDirection: "row",
@@ -273,7 +269,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#007AFF",
+    backgroundColor: PicoThemeVariables.primaryBackground,
     borderRadius: 2,
   },
 });

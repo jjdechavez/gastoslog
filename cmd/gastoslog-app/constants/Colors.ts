@@ -30,6 +30,7 @@ export const Colors = {
     tabIconDefault: "#687076",
     tabIconSelected: tintColorLight,
     cardBackground: PicoThemeVariables.cardBackground,
+    contrastColor: PicoThemeVariables.contrastColor,
   },
   dark: {
     text: PicoDarkThemeVariables.textColor,
@@ -53,5 +54,6 @@ export const Colors = {
     tabIconDefault: "#9BA1A6",
     tabIconSelected: tintColorDark,
     cardBackground: PicoDarkThemeVariables.cardBackground,
+    contrastColor: PicoDarkThemeVariables.contrastColor,
   },
 };
