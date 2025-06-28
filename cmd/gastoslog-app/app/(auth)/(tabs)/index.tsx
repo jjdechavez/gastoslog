@@ -1,75 +1,260 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
+import React, { useEffect, useState } from 'react';
+import { Platform, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedView, TScrollView } from '@/components/ThemedView';
+import { Card } from '@/components/Card';
+import { api } from '@/services/api';
+import type { ExpenseOverviewResponse } from '@/services/api';
+import { PicoLimeStyles } from '@/styles/pico-lime';
+import { HGroup } from '@/components/HGroup';
+import { Button, ButtonText } from '@/components/Button';
+
+type Period = 'today' | 'month' | 'year';
+
+const getPeriodLabel = (period: Period) => {
+  switch (period) {
+    case 'today':
+      return 'Today';
+    case 'month':
+      return 'This Month';
+    case 'year':
+      return 'This Year';
+  }
+};
 
 export default function HomeScreen() {
+  const [overview, setOverview] = useState<ExpenseOverviewResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>('today');
+
+  const fetchOverview = async (period: Period) => {
+    try {
+      setLoading(true);
+      const response = await api().expense.overview(period);
+      console.log(response);
+      setOverview(response);
+    } catch (error) {
+      console.error('Error fetching expense overview:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOverview(selectedPeriod);
+  }, [selectedPeriod]);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+    }).format(amount);
+  };
+
+  const PeriodButton = ({ period, label }: { period: Period; label: string }) => (
+    <TouchableOpacity
+      style={[
+        styles.periodButton,
+        selectedPeriod === period && styles.periodButtonActive,
+      ]}
+      onPress={() => setSelectedPeriod(period)}
+    >
+      <ButtonText
+        style={[
+          styles.periodButtonText,
+          selectedPeriod === period && styles.periodButtonTextActive,
+        ]}
+      >
+        {label}
+      </ButtonText>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <ThemedView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+        <ThemedText style={styles.loadingText}>Loading overview...</ThemedText>
+      </ThemedView>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Hello World!</ThemedText>
-        <HelloWave />
+    <TScrollView style={PicoLimeStyles.container}>
+      <HGroup title="Overview" />
+
+      <ThemedView style={styles.periodSelector}>
+        <PeriodButton period="today" label="Today" />
+        <PeriodButton period="month" label="Month" />
+        <PeriodButton period="year" label="Year" />
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+
+      {overview && (
+        <>
+          <Card style={styles.summaryCard}>
+            <ThemedView style={styles.summaryRow}>
+              <ThemedView>
+                <ThemedText type="subtitle">Total Spent</ThemedText>
+                <ThemedText type="title" style={styles.totalAmount}>
+                  {formatCurrency(overview.meta.totalAmount / 100)}
+                </ThemedText>
+              </ThemedView>
+              <ThemedView>
+                <ThemedText type="subtitle">Total Expenses</ThemedText>
+                <ThemedText type="title">{overview.meta.totalCount}</ThemedText>
+              </ThemedView>
+            </ThemedView>
+          </Card>
+
+          <ThemedView style={styles.categoriesSection}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              By Category
+            </ThemedText>
+            
+            {overview.data.length === 0 ? (
+              <Card style={styles.emptyCard}>
+                <ThemedText style={styles.emptyText}>
+                  No expenses found for {getPeriodLabel(selectedPeriod).toLowerCase()}
+                </ThemedText>
+              </Card>
+            ) : (
+              overview.data.map((category) => (
+                <Card key={category.categoryId} style={styles.categoryCard}>
+                  <ThemedView style={styles.categoryHeader}>
+                    <ThemedText type="defaultSemiBold" style={styles.categoryName}>
+                      {category.categoryName}
+                    </ThemedText>
+                    <ThemedText type="defaultSemiBold" style={styles.categoryAmount}>
+                      {formatCurrency(category.totalAmount)}
+                    </ThemedText>
+                  </ThemedView>
+                  
+                  <ThemedView style={styles.categoryDetails}>
+                    <ThemedText style={styles.categoryCount}>
+                      {category.count} expense{category.count !== 1 ? 's' : ''}
+                    </ThemedText>
+                    <ThemedText style={styles.categoryPercentage}>
+                      {category.percentage.toFixed(1)}%
+                    </ThemedText>
+                  </ThemedView>
+                  
+                  <ThemedView style={styles.progressBar}>
+                    <ThemedView 
+                      style={[
+                        styles.progressFill, 
+                        { width: `${category.percentage}%` }
+                      ]} 
+                    />
+                  </ThemedView>
+                </Card>
+              ))
+            )}
+          </ThemedView>
+        </>
+      )}
+    </TScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+  },
+  header: {
+    marginBottom: 24,
     gap: 8,
   },
-  stepContainer: {
+  periodSelector: {
+    flexDirection: 'row',
+    marginBottom: 24,
     gap: 8,
+  },
+  periodButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    alignItems: 'center',
+  },
+  periodButtonActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  periodButtonText: {
+    fontWeight: '600',
+  },
+  periodButtonTextActive: {
+    color: 'white',
+  },
+  summaryCard: {
+    marginBottom: 24,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  totalAmount: {
+    color: '#007AFF',
+  },
+  categoriesSection: {
+    gap: 12,
+  },
+  sectionTitle: {
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  emptyCard: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  emptyText: {
+    textAlign: 'center',
+    opacity: 0.6,
+  },
+  categoryCard: {
+    marginBottom: 8,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  categoryName: {
+    flex: 1,
+  },
+  categoryAmount: {
+    color: '#007AFF',
+  },
+  categoryDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  categoryCount: {
+    opacity: 0.6,
+    fontSize: 14,
+  },
+  categoryPercentage: {
+    opacity: 0.6,
+    fontSize: 14,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#007AFF',
+    borderRadius: 2,
   },
 });
