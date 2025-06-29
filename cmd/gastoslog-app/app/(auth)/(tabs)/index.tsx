@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { Platform, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView, TScrollView } from "@/components/ThemedView";
 import { Card } from "@/components/Card";
+import { Input } from "@/components/Input";
 import { api } from "@/services/api";
 import type { ExpenseOverviewResponse } from "@/services/api";
 import { PicoLimeStyles, PicoThemeVariables } from "@/styles/pico-lime";
 import { HGroup } from "@/components/HGroup";
-import { ButtonText } from "@/components/Button";
+import { Button, ButtonText } from "@/components/Button";
 
 type Period = "today" | "month" | "year";
 
@@ -28,11 +30,13 @@ export default function HomeScreen() {
   );
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("today");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const fetchOverview = async (period: Period) => {
+  const fetchOverview = async (period: Period, date?: string) => {
     try {
       setLoading(true);
-      const response = await api().expense.overview(period);
+      const response = await api().expense.overview(period, date);
       console.log(response);
       setOverview(response);
     } catch (error) {
@@ -43,14 +47,34 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    fetchOverview(selectedPeriod);
-  }, [selectedPeriod]);
+    const dateString = selectedDate.toISOString().split("T")[0];
+    fetchOverview(selectedPeriod, dateString);
+  }, [selectedPeriod, selectedDate]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
       style: "currency",
       currency: "PHP",
     }).format(amount);
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("en-PH", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  const onDateChange = (event: any, date?: Date) => {
+    setShowDatePicker(false);
+    if (date) {
+      setSelectedDate(date);
+    }
+  };
+
+  const showDatePickerModal = () => {
+    setShowDatePicker(true);
   };
 
   const PeriodButton = ({
@@ -91,6 +115,28 @@ export default function HomeScreen() {
     <TScrollView style={PicoLimeStyles.container}>
       <HGroup title="Overview" />
 
+      <ThemedView style={styles.dateSection}>
+        <ThemedText type="subtitle" style={styles.dateLabel}>
+          Select Date
+        </ThemedText>
+        <TouchableOpacity style={styles.dateButton} onPress={showDatePickerModal}>
+          <ThemedText style={styles.dateButtonText}>
+            {formatDate(selectedDate)}
+          </ThemedText>
+          <ThemedText style={styles.dateButtonIcon}>📅</ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display={Platform.OS === "ios" ? "spinner" : "default"}
+          onChange={onDateChange}
+          maximumDate={new Date()}
+        />
+      )}
+
       <ThemedView style={styles.periodSelector}>
         <PeriodButton period="today" label="Today" />
         <PeriodButton period="month" label="Month" />
@@ -99,65 +145,62 @@ export default function HomeScreen() {
 
       {overview && (
         <>
-          <ThemedView style={{ display: "flex" }}>
-            <Card style={styles.summaryCard}>
-              <ThemedText type="subtitle">Total Spent</ThemedText>
-              <ThemedText type="title" style={styles.totalAmount}>
-                {formatCurrency(overview.meta.totalAmount / 100)}
-              </ThemedText>
-            </Card>
-
-            <Card style={styles.summaryCard}>
-              <ThemedText type="subtitle">Total Expenses</ThemedText>
-              <ThemedText type="title">{overview.meta.totalCount}</ThemedText>
-            </Card>
-          </ThemedView>
+          <Card style={styles.summaryCard}>
+            <ThemedView style={styles.summaryRow}>
+              <ThemedView>
+                <ThemedText type="subtitle">Total Spent</ThemedText>
+                <ThemedText type="title" style={styles.totalAmount}>
+                  {formatCurrency(overview.meta.totalAmount / 100)}
+                </ThemedText>
+              </ThemedView>
+              <ThemedView>
+                <ThemedText type="subtitle">Total Expenses</ThemedText>
+                <ThemedText type="title">{overview.meta.totalCount}</ThemedText>
+              </ThemedView>
+            </ThemedView>
+            <ThemedText style={styles.dateInfo}>
+              {getPeriodLabel(selectedPeriod)} of {formatDate(selectedDate)}
+            </ThemedText>
+          </Card>
 
           <ThemedView style={styles.categoriesSection}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Category
+              By Category
             </ThemedText>
-
+            
             {overview.data.length === 0 ? (
               <Card style={styles.emptyCard}>
                 <ThemedText style={styles.emptyText}>
-                  No expenses found for{" "}
-                  {getPeriodLabel(selectedPeriod).toLowerCase()}
+                  No expenses found for {getPeriodLabel(selectedPeriod).toLowerCase()} of {formatDate(selectedDate)}
                 </ThemedText>
               </Card>
             ) : (
               overview.data.map((category) => (
                 <Card key={category.categoryId} style={styles.categoryCard}>
-                  <ThemedView variant="card" style={styles.categoryHeader}>
-                    <ThemedText
-                      type="defaultSemiBold"
-                      style={styles.categoryName}
-                    >
+                  <ThemedView style={styles.categoryHeader}>
+                    <ThemedText type="defaultSemiBold" style={styles.categoryName}>
                       {category.categoryName}
                     </ThemedText>
-                    <ThemedText
-                      type="defaultSemiBold"
-                      style={styles.categoryAmount}
-                    >
+                    <ThemedText type="defaultSemiBold" style={styles.categoryAmount}>
                       {formatCurrency(category.totalAmount)}
                     </ThemedText>
                   </ThemedView>
-
-                  <ThemedView variant="card" style={styles.categoryDetails}>
+                  
+                  <ThemedView style={styles.categoryDetails}>
                     <ThemedText style={styles.categoryCount}>
-                      {category.count} expense{category.count !== 1 ? "s" : ""}
+                      {category.count} expense{category.count !== 1 ? 's' : ''}
                     </ThemedText>
                     <ThemedText style={styles.categoryPercentage}>
                       {category.percentage.toFixed(1)}%
                     </ThemedText>
                   </ThemedView>
-
+                  
                   <ThemedView style={styles.progressBar}>
-                    <ThemedView
+                    <ThemedView 
                       style={[
-                        styles.progressFill,
-                        { width: `${category.percentage}%` },
-                      ]}
+                        styles.progressFill, 
+                        { width: `${category.percentage}%` }
+                      ]} 
                     />
                   </ThemedView>
                 </Card>
@@ -271,5 +314,33 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: PicoThemeVariables.primaryBackground,
     borderRadius: 2,
+  },
+  dateSection: {
+    marginBottom: 24,
+    gap: 8,
+  },
+  dateLabel: {
+    marginBottom: 8,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#f8f9fa',
+  },
+  dateButtonText: {
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  dateButtonIcon: {
+    fontSize: 20,
+  },
+  dateInfo: {
+    opacity: 0.6,
+    fontSize: 14,
   },
 });
