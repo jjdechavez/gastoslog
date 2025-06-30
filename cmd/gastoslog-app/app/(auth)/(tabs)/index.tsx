@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Platform, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView, TScrollView } from "@/components/ThemedView";
 import { Card } from "@/components/Card";
-import { Input } from "@/components/Input";
+import { DatePicker } from "@/components/DatePicker";
 import { api } from "@/services/api";
 import type { ExpenseOverviewResponse } from "@/services/api";
 import { PicoLimeStyles, PicoThemeVariables } from "@/styles/pico-lime";
@@ -31,7 +30,6 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("today");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const fetchOverview = async (period: Period, date?: string) => {
     try {
@@ -64,17 +62,6 @@ export default function HomeScreen() {
       month: "long",
       day: "numeric",
     });
-  };
-
-  const onDateChange = (event: any, date?: Date) => {
-    setShowDatePicker(false);
-    if (date) {
-      setSelectedDate(date);
-    }
-  };
-
-  const showDatePickerModal = () => {
-    setShowDatePicker(true);
   };
 
   const PeriodButton = ({
@@ -119,23 +106,13 @@ export default function HomeScreen() {
         <ThemedText type="subtitle" style={styles.dateLabel}>
           Select Date
         </ThemedText>
-        <TouchableOpacity style={styles.dateButton} onPress={showDatePickerModal}>
-          <ThemedText style={styles.dateButtonText}>
-            {formatDate(selectedDate)}
-          </ThemedText>
-          <ThemedText style={styles.dateButtonIcon}>📅</ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
-
-      {showDatePicker && (
-        <DateTimePicker
+        <DatePicker
           value={selectedDate}
-          mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onChange={onDateChange}
+          onChange={setSelectedDate}
+          placeholder="Select a date"
           maximumDate={new Date()}
         />
-      )}
+      </ThemedView>
 
       <ThemedView style={styles.periodSelector}>
         <PeriodButton period="today" label="Today" />
@@ -321,23 +298,6 @@ const styles = StyleSheet.create({
   },
   dateLabel: {
     marginBottom: 8,
-  },
-  dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    backgroundColor: '#f8f9fa',
-  },
-  dateButtonText: {
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  dateButtonIcon: {
-    fontSize: 20,
   },
   dateInfo: {
     opacity: 0.6,
