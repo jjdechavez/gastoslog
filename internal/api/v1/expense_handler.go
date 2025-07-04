@@ -238,6 +238,7 @@ func (c *ExpenseHandler) DetailExpense(ctx context.Context, input *DetailExpense
 
 type ExpenseOverviewInput struct {
 	Period string `query:"period" enum:"today,month,year" default:"today" doc:"Period for overview (today, month, year)"`
+	Date   string `query:"date" doc:"Custom date for overview (YYYY-MM-DD format)"`
 }
 
 type ExpenseOverviewOutput struct {
@@ -265,7 +266,16 @@ func (c *ExpenseHandler) GetExpenseOverview(ctx context.Context, input *ExpenseO
 		return nil, err
 	}
 
-	overviews, err := c.expenseRepository.GetOverviewByCategory(ctx, int64(userID), input.Period)
+	var customDate *time.Time
+	if input.Date != "" {
+		parsedDate, err := time.Parse("2025-01-02", input.Date)
+		if err != nil {
+			return nil, huma.Error400BadRequest("Invalid date format. Use YYYY-MM-DD")
+		}
+		customDate = &parsedDate
+	}
+
+	overviews, err := c.expenseRepository.GetOverviewByCategory(ctx, int64(userID), input.Period, customDate)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("Failed to get expense overview", err)
 	}

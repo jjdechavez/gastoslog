@@ -28,7 +28,7 @@ type ExpenseRepository interface {
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, input ListExpenseInput) ([]RawExpense, error)
 	ExistWithUserID(ctx context.Context, input ExistExpenseWithUserIDInput) (bool, error)
-	GetOverviewByCategory(ctx context.Context, userID int64, period string) ([]CategoryExpenseOverview, error)
+	GetOverviewByCategory(ctx context.Context, userID int64, period string, customDate *time.Time) ([]CategoryExpenseOverview, error)
 }
 
 type expenseRepository struct {
@@ -193,6 +193,7 @@ func (r *expenseRepository) List(ctx context.Context, input ListExpenseInput) ([
 		JOIN categories ON categories.id = expenses.category_id
 		WHERE expenses.user_id = $1
 		AND expenses.deleted_at IS NULL
+		ORDER BY expenses.created_at DESC
 		LIMIT $2 OFFSET $3;
 	`
 
@@ -234,7 +235,7 @@ type CategoryExpenseOverview struct {
 	Count        int64  `db:"count"`
 }
 
-func (r *expenseRepository) GetOverviewByCategory(ctx context.Context, userID int64, period string) ([]CategoryExpenseOverview, error) {
+func (r *expenseRepository) GetOverviewByCategory(ctx context.Context, userID int64, period string, customDate *time.Time) ([]CategoryExpenseOverview, error) {
 	var query string
 	var args []interface{}
 
@@ -250,13 +251,13 @@ func (r *expenseRepository) GetOverviewByCategory(ctx context.Context, userID in
 			INNER JOIN expenses e ON c.id = e.category_id 
 				AND e.user_id = $1 
 				AND e.deleted_at IS NULL
-				AND DATE(e.created_at) = CURRENT_DATE
+				AND DATE(e.created_at) = COALESCE($2, CURRENT_DATE)
 			WHERE c.user_id = $1 
 				AND c.deleted_at IS NULL
 			GROUP BY c.id, c.name
 			ORDER BY total_amount DESC
 		`
-		args = []interface{}{userID}
+		args = []interface{}{userID, customDate}
 	case "month":
 		query = `
 			SELECT 
@@ -268,13 +269,13 @@ func (r *expenseRepository) GetOverviewByCategory(ctx context.Context, userID in
 			INNER JOIN expenses e ON c.id = e.category_id 
 				AND e.user_id = $1 
 				AND e.deleted_at IS NULL
-				AND DATE_TRUNC('month', e.created_at) = DATE_TRUNC('month', CURRENT_DATE)
+				AND DATE_TRUNC('month', e.created_at) = DATE_TRUNC('month', COALESCE($2, CURRENT_DATE))
 			WHERE c.user_id = $1 
 				AND c.deleted_at IS NULL
 			GROUP BY c.id, c.name
 			ORDER BY total_amount DESC
 		`
-		args = []interface{}{userID}
+		args = []interface{}{userID, customDate}
 	case "year":
 		query = `
 			SELECT 
@@ -286,13 +287,13 @@ func (r *expenseRepository) GetOverviewByCategory(ctx context.Context, userID in
 			INNER JOIN expenses e ON c.id = e.category_id 
 				AND e.user_id = $1 
 				AND e.deleted_at IS NULL
-				AND DATE_TRUNC('year', e.created_at) = DATE_TRUNC('year', CURRENT_DATE)
+				AND DATE_TRUNC('year', e.created_at) = DATE_TRUNC('year', COALESCE($2, CURRENT_DATE))
 			WHERE c.user_id = $1 
 				AND c.deleted_at IS NULL
 			GROUP BY c.id, c.name
 			ORDER BY total_amount DESC
 		`
-		args = []interface{}{userID}
+		args = []interface{}{userID, customDate}
 	default:
 		return nil, errors.New("invalid period. Must be 'today', 'month', or 'year'")
 	}
