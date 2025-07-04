@@ -5,18 +5,14 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import {
-  api,
-  Expense,
-  ExpenseInput,
-  ListExpense,
-  ListMeta,
-} from "@/services/api";
+import { api } from "@/services/api";
+import type { Expense, ExpenseInput, ListExpense } from "@/types/expense";
 import {
   buildOptions,
   queryKeysFactory,
   UseQueryOptionsWrapper,
 } from "@/services/query";
+import { ListMeta } from "@/types/api";
 
 const EXPENSE_QUERY_KEY = `expenses` as const;
 
@@ -25,7 +21,7 @@ export const expenseKeys = queryKeysFactory(EXPENSE_QUERY_KEY);
 type ExpensesQueryKey = typeof expenseKeys;
 
 export const useExpenses = (
-  query?: ListMeta,
+  query?: Partial<ListMeta>,
   options?: UseQueryOptionsWrapper<
     ListExpense,
     Error,
@@ -34,7 +30,7 @@ export const useExpenses = (
 ) => {
   return useQuery({
     queryKey: expenseKeys.list(query),
-    queryFn: () => api().expense.list(),
+    queryFn: () => api().expense.list(query),
     ...options,
   });
 };

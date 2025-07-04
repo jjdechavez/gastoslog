@@ -5,15 +5,11 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import {
-  api,
-  ListCategory,
-  ListMeta,
-  Category,
-  CategoryInput,
-} from "@/services/api";
+import { api } from "@/services/api";
+import type { ListCategory, Category, CategoryInput } from "@/types/category";
 import { queryKeysFactory, UseQueryOptionsWrapper } from "@/services/query";
 import { buildOptions } from "@/services/query";
+import { ListMeta } from "@/types/api";
 
 const CATEGORY_QUERY_KEY = `categories` as const;
 
@@ -31,7 +27,7 @@ export const useCategories = (
 ) => {
   return useQuery({
     queryKey: categoryKeys.list(query),
-    queryFn: () => api().category.list(),
+    queryFn: () => api().category.list(query),
     ...options,
   });
 };

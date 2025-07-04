@@ -1,85 +1,46 @@
-import { z } from "zod/v4";
+import { Category, CategoryInput, ListCategory } from "@/types/category";
 import { request } from "./request";
+import {
+  Expense,
+  ExpenseInput,
+  ExpenseOverviewResponse,
+  ListExpense,
+} from "@/types/expense";
+import { ListMeta } from "@/types/api";
 
 const V1 = "/v1" as const;
 
-export type ListMeta = {
-  page: number;
-  limit: number;
+export const DEFAULT_PAGE_INDEX = 1;
+export const DEFAULT_PAGE_SIZE = 10;
+
+export const cleanEmptyParams = <T extends Record<string, unknown>>(
+  search: T,
+) => {
+  const newSearch = { ...search };
+  Object.keys(newSearch).forEach((key) => {
+    const value = newSearch[key];
+    if (
+      value === undefined ||
+      value === "" ||
+      (typeof value === "number" && isNaN(value))
+    )
+      delete newSearch[key];
+  });
+
+  if (search.page === DEFAULT_PAGE_INDEX) delete newSearch.page;
+  if (search.limit === DEFAULT_PAGE_SIZE) delete newSearch.limit;
+
+  return newSearch;
 };
 
-export const CategorySchema = z.object({
-  id: z.number().nonnegative(),
-  name: z
-    .string({ error: "Name is required" })
-    .min(2, { error: "Minimum 2 text" })
-    .max(255, { error: "Maximum 255 text" }),
-  description: z.string().optional().nullable(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-});
+export function getSearchParams(params: Record<string, any>) {
+  const serializeParams = cleanEmptyParams(params);
+  const urlSearchParams = new URLSearchParams(serializeParams);
 
-export const CategoryInputSchema = CategorySchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export type Category = z.infer<typeof CategorySchema>;
-export type CategoryInput = z.infer<typeof CategoryInputSchema>;
-
-export type ListResponse<T> = {
-  data: Array<T>;
-  meta: ListMeta;
-};
-
-export type ListCategory = ListResponse<Category>;
-
-export type CreateCategoryInput = {
-  name: string;
-  description?: string;
-};
-
-export const ExpenseSchema = z.object({
-  id: z.number().nonnegative(),
-  amount: z.coerce
-    .number({ error: "Amount is required" })
-    .positive()
-    .min(1, { error: "Minimum 1" }),
-  description: z.string().optional().nullable(),
-  createdAt: z.iso.date(),
-  updatedAt: z.date(),
-  categoryId: CategorySchema.shape.id,
-  category: CategorySchema,
-});
-
-export type Expense = z.infer<typeof ExpenseSchema>;
-
-export type ListExpense = ListResponse<Expense>;
-
-export type ExpenseOverviewResponse = {
-  data: Array<{
-    categoryId: number;
-    categoryName: string;
-    totalAmount: number;
-    count: number;
-    percentage: number;
-  }>;
-  meta: {
-    period: string;
-    totalAmount: number;
-    totalCount: number;
-  };
-};
-
-export const ExpenseInputSchema = ExpenseSchema.omit({
-  id: true,
-  category: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export type ExpenseInput = z.infer<typeof ExpenseInputSchema>;
+  return urlSearchParams.toString().length === 0
+    ? urlSearchParams.toString()
+    : `?${urlSearchParams.toString()}`;
+}
 
 export const api = (version = V1) => {
   return {
@@ -111,11 +72,15 @@ export const api = (version = V1) => {
       },
     },
     category: {
-      list: async () => {
-        return await request<ListCategory>(`${version}/categories`, {
-          method: "GET",
-          credentials: "include",
-        });
+      list: async (query?: ListMeta) => {
+        const searchParams = getSearchParams(query || {});
+        return await request<ListCategory>(
+          `${version}/categories${searchParams}`,
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        );
       },
       detail: async (categoryId: string) => {
         return await request<{ data: Category }>(
@@ -148,15 +113,28 @@ export const api = (version = V1) => {
       },
     },
     expense: {
-      list: async () => {
-        return await request<ListExpense>(`${version}/expenses`, {
-          method: "GET",
-          credentials: "include",
-        });
+      list: async (query?: Partial<ListMeta>) => {
+        const searchParams = getSearchParams(query || {});
+        return await request<ListExpense>(
+          `${version}/expenses${searchParams}`,
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        );
       },
-      overview: async (period: "today" | "month" | "year" = "today") => {
+      overview: async (
+        period: "today" | "month" | "year" = "today",
+        date?: string,
+      ) => {
+        const params = new URLSearchParams();
+        params.append("period", period);
+        if (date) {
+          params.append("date", date);
+        }
+
         return await request<ExpenseOverviewResponse>(
-          `${version}/expenses/overview?period=${period}`,
+          `${version}/expenses/overview?${params.toString()}`,
           {
             method: "GET",
             credentials: "include",
