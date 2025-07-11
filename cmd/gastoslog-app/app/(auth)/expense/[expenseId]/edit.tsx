@@ -1,15 +1,15 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { ExpenseInput } from "@/services/api";
+import { ThemedText } from "@/components/ThemedText";
 import { useCategories } from "@/services/api-hook/category";
-import { ExpenseForm } from "../create";
 import {
   expenseKeys,
   useExpense,
   useUpdateExpense,
 } from "@/services/api-hook/expense";
-import { ThemedText } from "@/components/ThemedText";
+import { ExpenseInput } from "@/types/expense";
+import { ExpenseForm } from "../create";
 
 export default function EditExpenseScreen() {
   const router = useRouter();

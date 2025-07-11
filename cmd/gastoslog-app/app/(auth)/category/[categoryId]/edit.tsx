@@ -1,21 +1,21 @@
-import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
+import { Controller, useForm } from "react-hook-form";
 
 import { Button, ButtonText } from "@/components/Button";
+import { Fieldset, Label } from "@/components/Fieldset";
 import { HGroup } from "@/components/HGroup";
 import { Input, InputError } from "@/components/Input";
+import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { PicoLimeStyles } from "@/styles/pico-lime";
-import { Category, CategoryInput, CategoryInputSchema } from "@/services/api";
 import {
   categoryKeys,
   useCategory,
   useUpdateCategory,
 } from "@/services/api-hook/category";
+import { PicoLimeStyles } from "@/styles/pico-lime";
+import { CategoryInputSchema, type Category, type CategoryInput } from "@/types/category";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ThemedText } from "@/components/ThemedText";
-import { Fieldset, Label } from "@/components/Fieldset";
 
 export default function EditCategoryScreen() {
   const router = useRouter();

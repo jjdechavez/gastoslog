@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from "react";
-import { Platform, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView, TScrollView } from "@/components/ThemedView";
+import { ButtonText } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { DatePicker } from "@/components/DatePicker";
-import { api } from "@/services/api";
-import type { ExpenseOverviewResponse } from "@/services/api";
-import { PicoLimeStyles, PicoThemeVariables } from "@/styles/pico-lime";
 import { HGroup } from "@/components/HGroup";
-import { Button, ButtonText } from "@/components/Button";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView, TScrollView } from "@/components/ThemedView";
+import { api } from "@/services/api";
+import { PicoLimeStyles, PicoThemeVariables } from "@/styles/pico-lime";
+import type { ExpenseOverviewResponse } from "@/types/expense";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
 
 type Period = "today" | "month" | "year";
 

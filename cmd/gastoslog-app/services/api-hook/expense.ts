@@ -1,18 +1,20 @@
 import {
+  useInfiniteQuery,
   useMutation,
   UseMutationOptions,
   useQuery,
   useQueryClient,
+  type UseInfiniteQueryOptions,
 } from "@tanstack/react-query";
 
 import { api } from "@/services/api";
-import type { Expense, ExpenseInput, ListExpense } from "@/types/expense";
 import {
   buildOptions,
   queryKeysFactory,
   UseQueryOptionsWrapper,
 } from "@/services/query";
 import { ListMeta } from "@/types/api";
+import type { Expense, ExpenseInput, ListExpense } from "@/types/expense";
 
 const EXPENSE_QUERY_KEY = `expenses` as const;
 
@@ -20,17 +22,26 @@ export const expenseKeys = queryKeysFactory(EXPENSE_QUERY_KEY);
 
 type ExpensesQueryKey = typeof expenseKeys;
 
-export const useExpenses = (
+export const useInfiniteExpenses = (
   query?: Partial<ListMeta>,
-  options?: UseQueryOptionsWrapper<
+  options?: UseInfiniteQueryOptions<
     ListExpense,
     Error,
     ReturnType<ExpensesQueryKey["list"]>
   >,
 ) => {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: expenseKeys.list(query),
-    queryFn: () => api().expense.list(query),
+    queryFn: ({ pageParam }) =>
+      api().expense.list({ ...query, page: pageParam as number }),
+    getNextPageParam: (lastPage) => {
+      if (lastPage.data.length === 0) {
+        return undefined;
+      }
+      return lastPage.meta.page + 1;
+    },
+    getPreviousPageParam: (firstPage) => firstPage.meta.page - 1,
+    initialPageParam: 1,
     ...options,
   });
 };

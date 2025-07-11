@@ -1,23 +1,23 @@
-import { FlatList, StyleSheet, TouchableOpacity } from "react-native";
 import { Link, useLocalSearchParams } from "expo-router";
+import { FlatList, StyleSheet, TouchableOpacity } from "react-native";
 
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import {
-  PicoThemeVariables,
-  PicoLimeStyles as pstyles,
-} from "@/styles/pico-lime";
-import { IconSymbol } from "@/components/ui/IconSymbol";
 import { Alert } from "@/components/Alert";
 import {
   FloatingButton,
   styles as floatingButtonStyle,
 } from "@/components/FloatingButton";
-import { useExpenses } from "@/services/api-hook/expense";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import { useInfiniteExpenses } from "@/services/api-hook/expense";
 import { fromCentToRegularPrice, toFormattedDate } from "@/services/string";
+import {
+  PicoThemeVariables,
+  PicoLimeStyles as pstyles,
+} from "@/styles/pico-lime";
 
 export default function ExpenseScreen() {
-  const expenseResult = useExpenses();
+  const expenseResult = useInfiniteExpenses();
   const params = useLocalSearchParams();
 
   if (expenseResult.status === "pending") {
@@ -55,8 +55,15 @@ export default function ExpenseScreen() {
       </FloatingButton>
 
       <FlatList
-        data={expenseResult.data.data}
-        renderItem={({ item }) => (
+        data={expenseResult.data.pages.flatMap((page) => page.data) || []}
+        onEndReached={() => {
+          if (expenseResult.hasNextPage && !expenseResult.isFetching) {
+            expenseResult.fetchNextPage();
+          }
+        }}
+        // onEndReachedThreshold={0.5}
+        renderItem={({ item }) => {
+          return (
           <Link href={`/(auth)/expense/${item.id}/edit`} push>
             <ThemedView
               style={{
@@ -77,7 +84,13 @@ export default function ExpenseScreen() {
               </ThemedText>
             </ThemedView>
           </Link>
-        )}
+        )}}
+        ListFooterComponent={() => {
+          if (expenseResult.isFetchingNextPage) {
+            return <ThemedText>Loading...</ThemedText>;
+          }
+          return null;
+        }}
       />
     </ThemedView>
   );

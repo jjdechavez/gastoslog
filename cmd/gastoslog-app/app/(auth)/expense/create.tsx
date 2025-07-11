@@ -5,16 +5,12 @@ import { Input, InputError } from "@/components/Input";
 import { Select } from "@/components/Select";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import {
-  Category,
-  Expense,
-  ExpenseInput,
-  ExpenseInputSchema,
-} from "@/services/api";
 import { useCategories } from "@/services/api-hook/category";
 import { useCreateExpense } from "@/services/api-hook/expense";
 import { fromCentToRegularPrice } from "@/services/string";
 import { PicoLimeStyles } from "@/styles/pico-lime";
+import type { Category } from "@/types/category";
+import { ExpenseInputSchema, type Expense, type ExpenseInput } from "@/types/expense";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
