@@ -76,6 +76,14 @@ func (s *Server) RegisterRoutes() http.Handler {
 		Security:    bearerSecurity,
 	}, userHandler.Me)
 
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "auth-refresh-token",
+		Method:      http.MethodPost,
+		Path:        "/auth/refresh-token",
+		Summary:     "Refresh token",
+		Tags:        []string{"Auth"},
+	}, userHandler.RefreshToken)
+
 	categoryHandler := v1.NewCategoryHandler(s.db.CategoryRepository())
 
 	huma.Register(apiV1, huma.Operation{

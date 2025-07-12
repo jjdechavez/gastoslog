@@ -6,8 +6,10 @@ import (
 	"gastoslog/internal/auth"
 	"gastoslog/internal/config"
 	"gastoslog/internal/middleware"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type UserHandler struct {
@@ -52,7 +54,8 @@ type SignInInput struct {
 
 type SignInOutput struct {
 	Body struct {
-		Token string `json:"token" doc:"JWT user token"`
+		Token        string `json:"token" doc:"JWT user token"`
+		RefreshToken string `json:"refresh_token" doc:"JWT refresh token"`
 	}
 }
 
@@ -64,13 +67,20 @@ func (h *UserHandler) SignIn(ctx context.Context, input *SignInInput) (*SignInOu
 
 	resp := &SignInOutput{}
 
-	token, err := auth.GenerateJWTToken([]byte(config.AUTH_SECRET), user.ID)
+	token, err := auth.GenerateJWTToken([]byte(config.AUTH_SECRET), user.ID, time.Hour)
+
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken, err := auth.GenerateJWTToken([]byte(config.AUTH_SECRET), user.ID, time.Hour*24)
 
 	if err != nil {
 		return nil, err
 	}
 
 	resp.Body.Token = token
+	resp.Body.RefreshToken = refreshToken
 
 	return resp, nil
 }
@@ -99,5 +109,40 @@ func (h *UserHandler) Me(ctx context.Context, input *MeInput) (*MeOutput, error)
 	resp := &MeOutput{}
 	resp.Body.User = *user
 
+	return resp, nil
+}
+
+type RefreshTokenInput struct {
+	Body struct {
+		RefreshToken string `json:"refresh_token" doc:"JWT refresh token"`
+	}
+}
+
+type RefreshTokenOutput struct {
+	Body struct {
+		Token string `json:"token" doc:"JWT user token"`
+	}
+}
+
+func (h *UserHandler) RefreshToken(ctx context.Context, input *RefreshTokenInput) (*RefreshTokenOutput, error) {
+	token, err := auth.VerifyJWTToken([]byte(config.AUTH_SECRET), input.Body.RefreshToken)
+	if err != nil {
+		return nil, huma.Error401Unauthorized("Invalid refresh token")
+	}
+
+	userID := token.Claims.(jwt.MapClaims)["sub"].(float64)
+
+	user, err := h.userService.GetUserById(ctx, int64(userID))
+	if err != nil {
+		return nil, huma.Error404NotFound("User not found")
+	}
+
+	accessToken, err := auth.GenerateJWTToken([]byte(config.AUTH_SECRET), user.ID, time.Hour)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &RefreshTokenOutput{}
+	resp.Body.Token = accessToken
 	return resp, nil
 }
