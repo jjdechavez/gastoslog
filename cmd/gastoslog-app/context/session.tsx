@@ -17,12 +17,14 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [[isLoading, session], setSession] = useStorageState("session");
+  const [_, setRefreshToken] = useStorageState("refreshToken");
 
   const signIn = async (email: string, password: string) => {
     try {
       const response = await api().auth.signIn(email, password);
 
       setSession(response.token);
+      setRefreshToken(response.refresh_token)
       return true;
     } catch (error) {
       console.error("Sign in error:", error);

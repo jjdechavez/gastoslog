@@ -58,10 +58,13 @@ export const request = ofetch.create({
       refreshingToken = true;
       const retry = new Promise((resolve, reject) => {
         ofetch
-          .raw<string>("/auth/Refresh-Token", {
+          .raw<string>("/v1/auth/refresh-token", {
             baseURL: process.env.EXPO_PUBLIC_API_URL,
             method: "POST",
             credentials: "include",
+            body: {
+              refresh_token: SecureStore.getItem("refreshToken"),
+            },
           })
           .then((resp) => {
             processQueue(null, resp._data);

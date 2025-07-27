@@ -46,10 +46,13 @@ export const api = (version = V1) => {
   return {
     auth: {
       signIn: async (email: string, password: string) => {
-        return await request<{ token: string }>(`${version}/auth/sign-in`, {
-          method: "POST",
-          body: { email, password },
-        });
+        return await request<{ token: string; refresh_token: string }>(
+          `${version}/auth/sign-in`,
+          {
+            method: "POST",
+            body: { email, password },
+          },
+        );
       },
       signUp: async (username: string, password: string) => {
         return await request<{ message: string; token: string }>(
