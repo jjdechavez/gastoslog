@@ -55,12 +55,30 @@ export default function HomeScreen() {
     }).format(amount);
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-PH", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+  const formatDate = (date: Date, period: Period) => {
+    const options: Intl.DateTimeFormatOptions = {};
+    switch (period) {
+      case "today":
+        options.year = "numeric";
+        options.month = "long";
+        options.day = "numeric";
+        break;
+      case "month":
+        options.year = "numeric";
+        options.month = "long";
+        break;
+      case "year":
+        options.year = "numeric";
+        break;
+      default:
+        // Fallback for unexpected viewType, or default to full date
+        options.year = "numeric";
+        options.month = "long";
+        options.day = "numeric";
+        break;
+    }
+
+    return date.toLocaleDateString("en-PH", options);
   };
 
   const PeriodButton = ({
@@ -122,7 +140,7 @@ export default function HomeScreen() {
       {overview && (
         <>
           <Card style={styles.summaryCard}>
-            <ThemedView style={styles.summaryRow}>
+            <ThemedView style={styles.summaryRow} variant="card">
               <ThemedView variant="card">
                 <ThemedText type="subtitle">Total Spent</ThemedText>
                 <ThemedText type="title" style={styles.totalAmount}>
@@ -135,7 +153,7 @@ export default function HomeScreen() {
               </ThemedView>
             </ThemedView>
             <ThemedText style={styles.dateInfo}>
-              {getPeriodLabel(selectedPeriod)} of {formatDate(selectedDate)}
+              {getPeriodLabel(selectedPeriod)} of {formatDate(selectedDate, selectedPeriod)}
             </ThemedText>
           </Card>
 
@@ -143,40 +161,48 @@ export default function HomeScreen() {
             <ThemedText type="subtitle" style={styles.sectionTitle}>
               By Category
             </ThemedText>
-            
+
             {overview.data.length === 0 ? (
               <Card style={styles.emptyCard}>
                 <ThemedText style={styles.emptyText}>
-                  No expenses found for {getPeriodLabel(selectedPeriod).toLowerCase()} of {formatDate(selectedDate)}
+                  No expenses found for{" "}
+                  {getPeriodLabel(selectedPeriod).toLowerCase()} of{" "}
+                  {formatDate(selectedDate, selectedPeriod)}
                 </ThemedText>
               </Card>
             ) : (
               overview.data.map((category) => (
                 <Card key={category.categoryId} style={styles.categoryCard}>
                   <ThemedView style={styles.categoryHeader} variant="card">
-                    <ThemedText type="defaultSemiBold" style={styles.categoryName}>
+                    <ThemedText
+                      type="defaultSemiBold"
+                      style={styles.categoryName}
+                    >
                       {category.categoryName}
                     </ThemedText>
-                    <ThemedText type="defaultSemiBold" style={styles.categoryAmount}>
+                    <ThemedText
+                      type="defaultSemiBold"
+                      style={styles.categoryAmount}
+                    >
                       {formatCurrency(category.totalAmount)}
                     </ThemedText>
                   </ThemedView>
-                  
+
                   <ThemedView style={styles.categoryDetails} variant="card">
                     <ThemedText style={styles.categoryCount}>
-                      {category.count} expense{category.count !== 1 ? 's' : ''}
+                      {category.count} expense{category.count !== 1 ? "s" : ""}
                     </ThemedText>
                     <ThemedText style={styles.categoryPercentage}>
                       {category.percentage.toFixed(1)}%
                     </ThemedText>
                   </ThemedView>
-                  
+
                   <ThemedView style={styles.progressBar}>
-                    <ThemedView 
+                    <ThemedView
                       style={[
-                        styles.progressFill, 
-                        { width: `${category.percentage}%` }
-                      ]} 
+                        styles.progressFill,
+                        { width: `${category.percentage}%` },
+                      ]}
                     />
                   </ThemedView>
                 </Card>
