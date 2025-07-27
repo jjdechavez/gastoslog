@@ -35,7 +35,6 @@ export default function HomeScreen() {
     try {
       setLoading(true);
       const response = await api().expense.overview(period, date);
-      console.log(response);
       setOverview(response);
     } catch (error) {
       console.error("Error fetching expense overview:", error);
@@ -124,13 +123,13 @@ export default function HomeScreen() {
         <>
           <Card style={styles.summaryCard}>
             <ThemedView style={styles.summaryRow}>
-              <ThemedView>
+              <ThemedView variant="card">
                 <ThemedText type="subtitle">Total Spent</ThemedText>
                 <ThemedText type="title" style={styles.totalAmount}>
                   {formatCurrency(overview.meta.totalAmount / 100)}
                 </ThemedText>
               </ThemedView>
-              <ThemedView>
+              <ThemedView variant="card">
                 <ThemedText type="subtitle">Total Expenses</ThemedText>
                 <ThemedText type="title">{overview.meta.totalCount}</ThemedText>
               </ThemedView>
@@ -154,7 +153,7 @@ export default function HomeScreen() {
             ) : (
               overview.data.map((category) => (
                 <Card key={category.categoryId} style={styles.categoryCard}>
-                  <ThemedView style={styles.categoryHeader}>
+                  <ThemedView style={styles.categoryHeader} variant="card">
                     <ThemedText type="defaultSemiBold" style={styles.categoryName}>
                       {category.categoryName}
                     </ThemedText>
@@ -163,7 +162,7 @@ export default function HomeScreen() {
                     </ThemedText>
                   </ThemedView>
                   
-                  <ThemedView style={styles.categoryDetails}>
+                  <ThemedView style={styles.categoryDetails} variant="card">
                     <ThemedText style={styles.categoryCount}>
                       {category.count} expense{category.count !== 1 ? 's' : ''}
                     </ThemedText>
