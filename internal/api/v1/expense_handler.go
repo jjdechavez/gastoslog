@@ -268,7 +268,7 @@ func (c *ExpenseHandler) GetExpenseOverview(ctx context.Context, input *ExpenseO
 
 	var customDate *time.Time
 	if input.Date != "" {
-		parsedDate, err := time.Parse("2025-01-02", input.Date)
+		parsedDate, err := time.Parse("2006-01-02", input.Date)
 		if err != nil {
 			return nil, huma.Error400BadRequest("Invalid date format. Use YYYY-MM-DD")
 		}

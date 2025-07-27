@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/guregu/null/v6"
@@ -251,7 +252,7 @@ func (r *expenseRepository) GetOverviewByCategory(ctx context.Context, userID in
 			INNER JOIN expenses e ON c.id = e.category_id 
 				AND e.user_id = $1 
 				AND e.deleted_at IS NULL
-				AND DATE(e.created_at) = COALESCE($2, CURRENT_DATE)
+				AND DATE(e.created_at) = DATE(COALESCE($2, CURRENT_DATE))
 			WHERE c.user_id = $1 
 				AND c.deleted_at IS NULL
 			GROUP BY c.id, c.name
@@ -269,7 +270,7 @@ func (r *expenseRepository) GetOverviewByCategory(ctx context.Context, userID in
 			INNER JOIN expenses e ON c.id = e.category_id 
 				AND e.user_id = $1 
 				AND e.deleted_at IS NULL
-				AND DATE_TRUNC('month', e.created_at) = DATE_TRUNC('month', COALESCE($2, CURRENT_DATE))
+				AND STRFTIME('%Y-%m', e.created_at) = STRFTIME('%Y-%m', COALESCE($2, CURRENT_DATE))
 			WHERE c.user_id = $1 
 				AND c.deleted_at IS NULL
 			GROUP BY c.id, c.name
@@ -287,7 +288,7 @@ func (r *expenseRepository) GetOverviewByCategory(ctx context.Context, userID in
 			INNER JOIN expenses e ON c.id = e.category_id 
 				AND e.user_id = $1 
 				AND e.deleted_at IS NULL
-				AND DATE_TRUNC('year', e.created_at) = DATE_TRUNC('year', COALESCE($2, CURRENT_DATE))
+				AND STRFTIME('%Y', e.created_at) = STRFTIME('%Y', COALESCE($2, CURRENT_DATE))
 			WHERE c.user_id = $1 
 				AND c.deleted_at IS NULL
 			GROUP BY c.id, c.name
@@ -301,7 +302,8 @@ func (r *expenseRepository) GetOverviewByCategory(ctx context.Context, userID in
 	var overviews []CategoryExpenseOverview
 	err := r.db.SelectContext(ctx, &overviews, query, args...)
 	if err != nil {
-		return nil, err
+		fmt.Println("Errir getting overview by category: %w", err)
+		return nil, fmt.Errorf("Failed to get overview by category: %w", err)
 	}
 
 	return overviews, nil
