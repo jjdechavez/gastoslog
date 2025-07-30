@@ -41,3 +41,11 @@ export const ExpenseInputSchema = ExpenseSchema.omit({
 });
 
 export type ExpenseInput = z.infer<typeof ExpenseInputSchema>;
+
+export const expensePeriod = ["today", "month", "year"] as const;
+export type Period = (typeof expensePeriod)[number];
+
+export type ExpenseOverviewQuery = {
+  period: Period;
+  date?: string;
+};

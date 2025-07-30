@@ -3,6 +3,7 @@ import { request } from "./request";
 import {
   Expense,
   ExpenseInput,
+  ExpenseOverviewQuery,
   ExpenseOverviewResponse,
   ListExpense,
 } from "@/types/expense";
@@ -126,14 +127,11 @@ export const api = (version = V1) => {
           },
         );
       },
-      overview: async (
-        period: "today" | "month" | "year" = "today",
-        date?: string,
-      ) => {
+      overview: async (query: ExpenseOverviewQuery = { period: "today" }) => {
         const params = new URLSearchParams();
-        params.append("period", period);
-        if (date) {
-          params.append("date", date);
+        params.append("period", query.period);
+        if (query?.date) {
+          params.append("date", query.date);
         }
 
         return await request<ExpenseOverviewResponse>(

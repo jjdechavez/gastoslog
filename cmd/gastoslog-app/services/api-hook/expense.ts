@@ -14,7 +14,14 @@ import {
   UseQueryOptionsWrapper,
 } from "@/services/query";
 import { ListMeta } from "@/types/api";
-import type { Expense, ExpenseInput, ListExpense } from "@/types/expense";
+import type {
+  Expense,
+  ExpenseInput,
+  ExpenseOverviewQuery,
+  ExpenseOverviewResponse,
+  ListExpense,
+  Period,
+} from "@/types/expense";
 
 const EXPENSE_QUERY_KEY = `expenses` as const;
 
@@ -85,4 +92,15 @@ export const useUpdateExpense = (
     ),
   });
   return { data: data?.data, ...rest };
+};
+
+export const useOverviewExpense = (
+  query: ExpenseOverviewQuery,
+  options?: UseQueryOptionsWrapper<ExpenseOverviewResponse, Error>,
+) => {
+  return useQuery({
+    queryKey: ["expense", "overview", query],
+    queryFn: () => api().expense.overview(query),
+    ...options,
+  });
 };
