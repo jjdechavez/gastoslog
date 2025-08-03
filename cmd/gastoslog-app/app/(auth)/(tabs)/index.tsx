@@ -57,18 +57,19 @@ const formatCurrency = (amount: number) => {
 
 function PeriodButton(props: { period: Period; label: string }) {
   const local = useLocalSearchParams();
+  const localPeriod = local?.period ?? "today";
   return (
     <TouchableOpacity
       style={[
         styles.periodButton,
-        local.period === props.period && styles.periodButtonActive,
+        localPeriod === props.period && styles.periodButtonActive,
       ]}
       onPress={() => router.setParams({ period: props.period })}
     >
       <ButtonText
         style={[
           styles.periodButtonText,
-          local.period === props.period && styles.periodButtonTextActive,
+          localPeriod === props.period && styles.periodButtonTextActive,
         ]}
       >
         {props.label}
