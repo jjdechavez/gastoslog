@@ -6,6 +6,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView, TScrollView } from "@/components/ThemedView";
 import { useOverviewExpense } from "@/services/api-hook/expense";
 import { PicoLimeStyles, PicoThemeVariables } from "@/styles/pico-lime";
+import { ExpenseOverviewResponse } from "@/types/expense";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
 
@@ -78,18 +79,24 @@ function PeriodButton(props: { period: Period; label: string }) {
   );
 }
 
-function OverviewDatePicker(props: {
-  value: Date;
-  onChange: (value: Date) => void;
-}) {
+function OverviewDatePicker() {
+  const local = useLocalSearchParams();
+  const currentDate = new Date();
+  const selectedDate =
+    (local.date as string) ?? currentDate.toISOString().split("T")[0];
+
+  const handlePickDate = (date: Date) => {
+    router.setParams({ date: date.toISOString().split("T")[0] });
+  };
+
   return (
     <ThemedView style={styles.dateSection}>
       <ThemedText type="subtitle" style={styles.dateLabel}>
         Select Date
       </ThemedText>
       <DatePicker
-        value={props.value}
-        onChange={props.onChange}
+        value={new Date(selectedDate)}
+        onChange={handlePickDate}
         placeholder="Select a date"
         maximumDate={new Date()}
       />
@@ -107,7 +114,7 @@ function Periods() {
   );
 }
 
-export default function HomeScreen() {
+function TotalOverview() {
   const local = useLocalSearchParams();
   const selectedPeriod = (local.period as Period) ?? "today";
   const currentDate = new Date();
@@ -115,13 +122,9 @@ export default function HomeScreen() {
     (local.date as string) ?? currentDate.toISOString().split("T")[0];
 
   const { data: overview, status } = useOverviewExpense({
-    period: selectedPeriod as Period,
+    period: selectedPeriod,
     date: selectedDate,
   });
-
-  const handlePickDate = (date: Date) => {
-    router.setParams({ date: date.toISOString().split("T")[0] });
-  };
 
   if (status === "pending") {
     return (
@@ -143,16 +146,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <TScrollView style={PicoLimeStyles.container}>
-      <HGroup title="Overview" />
-
-      <OverviewDatePicker
-        value={new Date(selectedDate)}
-        onChange={handlePickDate}
-      />
-
-      <Periods />
-
+    <>
       <Card style={styles.summaryCard}>
         <ThemedView style={styles.summaryRow} variant="card">
           <ThemedView variant="card">
@@ -172,55 +166,70 @@ export default function HomeScreen() {
         </ThemedText>
       </Card>
 
-      <ThemedView style={styles.categoriesSection}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>
-          By Category
+      <OverviewByCategory
+        overview={overview}
+        date={selectedDate}
+        period={selectedPeriod}
+      />
+    </>
+  );
+}
+
+type OverviewByCategoryProps = {
+  overview: ExpenseOverviewResponse;
+  date: string;
+  period: Period;
+};
+
+function OverviewByCategory(props: OverviewByCategoryProps) {
+  if (props.overview.data.length === 0) {
+    return (
+      <Card style={styles.emptyCard}>
+        <ThemedText style={styles.emptyText}>
+          No expenses found for {getPeriodLabel(props.period).toLowerCase()} of{" "}
+          {formatDate(new Date(props.date), props.period)}
         </ThemedText>
+      </Card>
+    );
+  }
 
-        {overview.data.length === 0 ? (
-          <Card style={styles.emptyCard}>
-            <ThemedText style={styles.emptyText}>
-              No expenses found for{" "}
-              {getPeriodLabel(selectedPeriod).toLowerCase()} of{" "}
-              {formatDate(new Date(selectedDate), selectedPeriod)}
-            </ThemedText>
-          </Card>
-        ) : (
-          overview.data.map((category) => (
-            <Card key={category.categoryId} style={styles.categoryCard}>
-              <ThemedView style={styles.categoryHeader} variant="card">
-                <ThemedText type="defaultSemiBold" style={styles.categoryName}>
-                  {category.categoryName}
-                </ThemedText>
-                <ThemedText
-                  type="defaultSemiBold"
-                  style={styles.categoryAmount}
-                >
-                  {formatCurrency(category.totalAmount)}
-                </ThemedText>
-              </ThemedView>
-
-              <ThemedView style={styles.categoryDetails} variant="card">
-                <ThemedText style={styles.categoryCount}>
-                  {category.count} expense{category.count !== 1 ? "s" : ""}
-                </ThemedText>
-                <ThemedText style={styles.categoryPercentage}>
-                  {category.percentage.toFixed(1)}%
-                </ThemedText>
-              </ThemedView>
-
-              <ThemedView style={styles.progressBar}>
-                <ThemedView
-                  style={[
-                    styles.progressFill,
-                    { width: `${category.percentage}%` },
-                  ]}
-                />
-              </ThemedView>
-            </Card>
-          ))
-        )}
+  return props.overview.data.map((category) => (
+    <Card key={category.categoryId} style={styles.categoryCard}>
+      <ThemedView style={styles.categoryHeader} variant="card">
+        <ThemedText type="defaultSemiBold" style={styles.categoryName}>
+          {category.categoryName}
+        </ThemedText>
+        <ThemedText type="defaultSemiBold" style={styles.categoryAmount}>
+          {formatCurrency(category.totalAmount)}
+        </ThemedText>
       </ThemedView>
+
+      <ThemedView style={styles.categoryDetails} variant="card">
+        <ThemedText style={styles.categoryCount}>
+          {category.count} expense{category.count !== 1 ? "s" : ""}
+        </ThemedText>
+        <ThemedText style={styles.categoryPercentage}>
+          {category.percentage.toFixed(1)}%
+        </ThemedText>
+      </ThemedView>
+
+      <ThemedView style={styles.progressBar}>
+        <ThemedView
+          style={[styles.progressFill, { width: `${category.percentage}%` }]}
+        />
+      </ThemedView>
+    </Card>
+  ));
+}
+
+export default function HomeScreen() {
+  return (
+    <TScrollView style={PicoLimeStyles.container}>
+      <HGroup title="Overview" />
+
+      <OverviewDatePicker />
+      <Periods />
+      <TotalOverview />
     </TScrollView>
   );
 }
