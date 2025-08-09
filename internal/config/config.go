@@ -12,9 +12,13 @@ var envs map[string]string
 
 func LoadENV() {
 	var err error
-	envs, err = godotenv.Read(".env")
-	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+	appEnv := os.Getenv("APP_ENV")
+
+	if appEnv == "local" {
+		envs, err = godotenv.Read(".env")
+		if err != nil {
+			log.Fatalf("Error loading .env file: %v", err)
+		}
 	}
 
 	assignValues()
