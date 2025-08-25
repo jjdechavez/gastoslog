@@ -20,7 +20,6 @@ import type {
   ExpenseOverviewQuery,
   ExpenseOverviewResponse,
   ListExpense,
-  Period,
 } from "@/types/expense";
 
 const EXPENSE_QUERY_KEY = `expenses` as const;
@@ -102,5 +101,20 @@ export const useOverviewExpense = (
     queryKey: ["expense", "overview", query],
     queryFn: () => api().expense.overview(query),
     ...options,
+  });
+};
+
+export const useDeleteExpense = (
+  expenseId: string,
+  options?: UseMutationOptions<void, Error>,
+) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api().expense.delete(expenseId),
+    ...buildOptions(
+      queryClient,
+      [expenseKeys.lists(), expenseKeys.detail(expenseId)],
+      options,
+    ),
   });
 };
