@@ -1,5 +1,11 @@
-import { Link, useLocalSearchParams } from "expo-router";
-import { FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  TouchableOpacity,
+  Alert as RNAlert,
+} from "react-native";
 
 import { Alert } from "@/components/Alert";
 import {
@@ -9,12 +15,16 @@ import {
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import { useInfiniteExpenses } from "@/services/api-hook/expense";
+import {
+  useDeleteExpense,
+  useInfiniteExpenses,
+} from "@/services/api-hook/expense";
 import { fromCentToRegularPrice, toFormattedDate } from "@/services/string";
 import {
   PicoThemeVariables,
   PicoLimeStyles as pstyles,
 } from "@/styles/pico-lime";
+import { Expense } from "@/types/expense";
 
 export default function ExpenseScreen() {
   const expenseResult = useInfiniteExpenses();
@@ -63,28 +73,8 @@ export default function ExpenseScreen() {
         }}
         // onEndReachedThreshold={0.5}
         renderItem={({ item }) => {
-          return (
-          <Link href={`/(auth)/expense/${item.id}/edit`} push>
-            <ThemedView
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <ThemedView style={styles.item}>
-                <ThemedText type="defaultSemiBold">
-                  {toFormattedDate(item.createdAt)}
-                </ThemedText>
-                <ThemedText type="muted">{item.category.name}</ThemedText>
-              </ThemedView>
-              <ThemedText>
-                -{fromCentToRegularPrice(item.amount, { type: "withDecimal" })}
-              </ThemedText>
-            </ThemedView>
-          </Link>
-        )}}
+          return <ExpenseItem key={item.id} expense={item} />;
+        }}
         ListFooterComponent={() => {
           if (expenseResult.isFetchingNextPage) {
             return <ThemedText>Loading...</ThemedText>;
@@ -96,10 +86,63 @@ export default function ExpenseScreen() {
   );
 }
 
+type ExpenseItemProps = {
+  expense: Expense;
+};
+
+function ExpenseItem(props: ExpenseItemProps) {
+  const router = useRouter();
+  const mutate = useDeleteExpense(props.expense.id.toString());
+
+  return (
+    <Pressable
+      onPress={() => router.push(`/(auth)/expense/${props.expense.id}/edit`)}
+      onLongPress={() =>
+        RNAlert.alert(
+          "Delete Expense",
+          "Are you sure you want to delete the expense",
+          [
+            {
+              text: "Cancel",
+              style: "cancel",
+            },
+            {
+              text: "Delete",
+              onPress: () => mutate.mutate(),
+            },
+          ],
+        )
+      }
+    >
+      <ThemedView
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <ThemedView style={styles.item}>
+          <ThemedText type="defaultSemiBold">
+            {toFormattedDate(props.expense.createdAt)}
+          </ThemedText>
+          <ThemedText type="muted">{props.expense.category.name}</ThemedText>
+        </ThemedView>
+        <ThemedText>
+          -
+          {fromCentToRegularPrice(props.expense.amount, {
+            type: "withDecimal",
+          })}
+        </ThemedText>
+      </ThemedView>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   item: {
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 18,
   },
-})
+});
