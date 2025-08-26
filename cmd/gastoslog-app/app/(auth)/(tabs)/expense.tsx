@@ -25,6 +25,8 @@ import {
   PicoLimeStyles as pstyles,
 } from "@/styles/pico-lime";
 import { Expense } from "@/types/expense";
+import { useState } from "react";
+import { useThemeColor } from "@/hooks/useThemeColor";
 
 export default function ExpenseScreen() {
   const expenseResult = useInfiniteExpenses();
@@ -92,27 +94,12 @@ type ExpenseItemProps = {
 
 function ExpenseItem(props: ExpenseItemProps) {
   const router = useRouter();
-  const mutate = useDeleteExpense(props.expense.id.toString());
+  const [toggleOption, setToogleOption] = useState(false);
 
   return (
     <Pressable
       onPress={() => router.push(`/(auth)/expense/${props.expense.id}/edit`)}
-      onLongPress={() =>
-        RNAlert.alert(
-          "Delete Expense",
-          "Are you sure you want to delete the expense",
-          [
-            {
-              text: "Cancel",
-              style: "cancel",
-            },
-            {
-              text: "Delete",
-              onPress: () => mutate.mutate(),
-            },
-          ],
-        )
-      }
+      onLongPress={() => setToogleOption((prev) => !prev)}
     >
       <ThemedView
         style={{
@@ -134,7 +121,40 @@ function ExpenseItem(props: ExpenseItemProps) {
             type: "withDecimal",
           })}
         </ThemedText>
+        {toggleOption ? <ExpenseOption expense={props.expense} /> : null}
       </ThemedView>
+    </Pressable>
+  );
+}
+
+type ExpenseOptionProps = {
+  expense: Expense;
+};
+
+export function ExpenseOption(props: ExpenseOptionProps) {
+  const mutate = useDeleteExpense(props.expense.id.toString());
+  const background = useThemeColor({}, "destructive");
+  return (
+    <Pressable
+      onPress={() =>
+        RNAlert.alert(
+          "Delete Expense",
+          "Are you sure you want to delete the expense",
+          [
+            {
+              text: "Cancel",
+              style: "cancel",
+            },
+            {
+              text: "Delete",
+              onPress: () => mutate.mutate(),
+            },
+          ],
+        )
+      }
+      style={{ backgroundColor: background, padding: 18 }}
+    >
+      <ThemedText type="muted">Delete</ThemedText>
     </Pressable>
   );
 }
