@@ -242,6 +242,8 @@ func (r *expenseRepository) GetOverviewByCategory(ctx context.Context, userID in
 
 	switch period {
 	case "today":
+		nextDay := customDate.AddDate(0, 0, 1)
+
 		query = `
 			SELECT 
 				c.id as category_id,
@@ -252,13 +254,14 @@ func (r *expenseRepository) GetOverviewByCategory(ctx context.Context, userID in
 			INNER JOIN expenses e ON c.id = e.category_id 
 				AND e.user_id = $1 
 				AND e.deleted_at IS NULL
-				AND DATE(e.created_at) = DATE(COALESCE($2, CURRENT_DATE))
+				AND e.created_at >= DATE($2)
+				AND DATE(e.created_at) <= DATE($3)
 			WHERE c.user_id = $1 
 				AND c.deleted_at IS NULL
 			GROUP BY c.id, c.name
 			ORDER BY total_amount DESC
 		`
-		args = []interface{}{userID, customDate}
+		args = []interface{}{userID, customDate, nextDay}
 	case "month":
 		query = `
 			SELECT 
