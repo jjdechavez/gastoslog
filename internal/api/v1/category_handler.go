@@ -50,8 +50,9 @@ func (c *CategoryHandler) CreateCategory(ctx context.Context, input *NewCategory
 }
 
 type ListCategoryInput struct {
-	Page  int `query:"page" default:"1" doc:"Page number of pagination"`
-	Limit int `query:"limit" default:"10" doc:"Limit per page of pagination"`
+	Page   int    `query:"page" default:"1" doc:"Page number of pagination"`
+	Limit  int    `query:"limit" default:"10" doc:"Limit per page of pagination"`
+	Search string `query:"s" doc:"Search category name"`
 }
 
 type ListCategoryOutput struct {
@@ -74,6 +75,7 @@ func (c *CategoryHandler) ListCategory(ctx context.Context, input *ListCategoryI
 		UserID: int64(userID),
 		Page:   input.Page,
 		Limit:  input.Limit,
+		Search: input.Search,
 	})
 
 	if err != nil {

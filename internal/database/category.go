@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -119,6 +121,7 @@ type ListCategoryInput struct {
 	UserID int64 `json:"user_id" doc:"User ID"`
 	Page   int   `json:"page"`
 	Limit  int   `json:"limit"`
+	Search string
 }
 
 func (r *categoryRepository) List(ctx context.Context, input ListCategoryInput) ([]Category, error) {
@@ -135,7 +138,7 @@ func (r *categoryRepository) List(ctx context.Context, input ListCategoryInput) 
 	}
 	offset := (input.Page - 1) * input.Limit
 
-	query := `
+	baseQuery := `
 		SELECT
 			id,
 			name,
@@ -145,10 +148,34 @@ func (r *categoryRepository) List(ctx context.Context, input ListCategoryInput) 
 		FROM categories
 		WHERE user_id = $1
 		AND deleted_at IS NULL
-		LIMIT $2 OFFSET $3;
 	`
+	args := []interface{}{input.UserID}
+	conditions := []string{}
 
-	err := r.db.SelectContext(ctx, &categories, query, input.UserID, input.Limit, offset)
+	if input.Search != "" {
+		condition := fmt.Sprintf(`name LIKE $%d`, len(args)+1)
+		conditions = append(conditions, condition)
+		args = append(args, "%"+input.Search+"%")
+	}
+
+	fullQuery := baseQuery
+
+	if len(conditions) > 0 {
+		fullQuery += " AND " + strings.Join(conditions, " AND ")
+
+	}
+
+	limitArgIndex := len(args) + 1
+	offsetArgIndex := len(args) + 2
+
+	fullQuery += fmt.Sprintf(`
+			ORDER BY name ASC
+			LIMIT $%d OFFSET $%d
+		`, limitArgIndex, offsetArgIndex)
+
+	args = append(args, input.Limit, offset)
+
+	err := r.db.SelectContext(ctx, &categories, fullQuery, args...)
 	if err != nil {
 		return nil, err
 	}
