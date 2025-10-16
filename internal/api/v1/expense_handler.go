@@ -64,8 +64,10 @@ func (c *ExpenseHandler) CreateExpense(ctx context.Context, input *NewExpenseInp
 }
 
 type ListExpenseInput struct {
-	Page  int `query:"page" default:"1" doc:"Page number of pagination"`
-	Limit int `query:"limit" default:"10" doc:"Limit per page of pagination"`
+	Page     int     `query:"page" default:"1" doc:"Page number of pagination"`
+	Limit    int     `query:"limit" default:"10" doc:"Limit per page of pagination"`
+	Date     string  `query:"date" doc:"Filter date for expense (YYYY-MM-DD format)"`
+	Category []int64 `query:"category" doc:"Filter category"`
 }
 
 type ListExpenseOutput struct {
@@ -84,12 +86,22 @@ func (c *ExpenseHandler) ListExpense(ctx context.Context, input *ListExpenseInpu
 		return nil, err
 	}
 
+	var date *time.Time
+	if input.Date != "" {
+		parsedDate, err := time.Parse("2006-01-02", input.Date)
+		if err != nil {
+			return nil, huma.Error400BadRequest("Invalid date format. Use YYYY-MM-DD")
+		}
+		date = &parsedDate
+	}
+
 	list, err := c.expenseRepository.List(ctx, database.ListExpenseInput{
-		UserID: int64(userID),
-		Page:   input.Page,
-		Limit:  input.Limit,
+		UserID:   int64(userID),
+		Page:     input.Page,
+		Limit:    input.Limit,
+		Date:     date,
+		Category: input.Category,
 	})
-	println(list)
 
 	if err != nil {
 		return nil, huma.Error500InternalServerError("Failed to list expenses", err)
