@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -24,8 +24,9 @@ type InfiniteData<T> = {
 };
 
 export type SelectProps<TItem extends SelectItem = SelectItem> = {
-  value?: TItem["value"] | null;
-  onChange?: (item: TItem | null) => void;
+  multiple?: boolean;
+  value?: TItem["value"] | Array<TItem["value"]> | null;
+  onChange?: (item: TItem | TItem[] | null) => void;
   placeholder?: string;
   disabled?: boolean;
 
@@ -52,6 +53,7 @@ export function Select<TItem extends SelectItem = SelectItem>(
   props: SelectProps<TItem>,
 ) {
   const {
+    multiple,
     value,
     onChange,
     placeholder = "Select...",
@@ -72,6 +74,9 @@ export function Select<TItem extends SelectItem = SelectItem>(
 
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [draftSelectedValues, setDraftSelectedValues] = useState<
+    Array<TItem["value"]>
+  >([]);
 
   const backgroundColor = useThemeColor({}, "formElementBackgroundColor");
   const borderColor = useThemeColor({}, "borderColor");
@@ -90,16 +95,48 @@ export function Select<TItem extends SelectItem = SelectItem>(
     });
   }, [data, searchable, search, renderItemLabel]);
 
+
+  const selectedValues: Array<TItem["value"]> = useMemo(() => {
+    if (multiple)
+      return Array.isArray(value) ? (value as Array<TItem["value"]>) : [];
+    return value == null ? [] : [value as TItem["value"]];
+  }, [value, multiple]);
+
   const selectedItem = useMemo(() => {
-    return flatData.find((it) => it.value === value) ?? null;
-  }, [flatData, value]);
+    if (multiple) return null;
+    return (
+      flatData.find((it) => it.value === (value as TItem["value"])) ?? null
+    );
+  }, [flatData, value, multiple]);
+
+  const selectedItems = useMemo(() => {
+    if (!multiple) return [] as TItem[];
+    if (!selectedValues.length) return [] as TItem[];
+    const set = new Set(selectedValues as Array<TItem["value"]>);
+    return flatData.filter((it) => set.has(it.value));
+  }, [flatData, multiple, selectedValues]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (multiple) {
+      setDraftSelectedValues(selectedValues);
+    }
+  }, [open, multiple, selectedValues]);
 
   const handleSelect = useCallback(
     (item: TItem) => {
+      if (multiple) {
+        setDraftSelectedValues((prev) => {
+          const exists = prev.some((v) => v === item.value);
+          if (exists) return prev.filter((v) => v !== item.value);
+          return [...prev, item.value];
+        });
+        return;
+      }
       onChange?.(item);
       setOpen(false);
     },
-    [onChange],
+    [onChange, multiple],
   );
 
   const defaultKeyExtractor = useCallback(
@@ -112,7 +149,9 @@ export function Select<TItem extends SelectItem = SelectItem>(
       const label = renderItemLabel
         ? renderItemLabel(item)
         : (item.label as string);
-      const isSelected = value === item.value;
+      const isSelected = multiple
+        ? draftSelectedValues.some((v) => v === item.value)
+        : (value as TItem["value"]) === item.value;
       return (
         <Pressable
           onPress={() => handleSelect(item)}
@@ -124,11 +163,28 @@ export function Select<TItem extends SelectItem = SelectItem>(
             backgroundColor: isSelected ? overlayBg : "transparent",
           }}
         >
-          <ThemedText>{label}</ThemedText>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <ThemedText>{label}</ThemedText>
+            {isSelected ? <ThemedText>✓</ThemedText> : null}
+          </View>
         </Pressable>
       );
     },
-    [handleSelect, renderItemLabel, value, borderColor, overlayBg],
+    [
+      handleSelect,
+      renderItemLabel,
+      value,
+      multiple,
+      draftSelectedValues,
+      borderColor,
+      overlayBg,
+    ],
   );
 
   const onEndReached = useCallback(() => {
@@ -194,6 +250,21 @@ export function Select<TItem extends SelectItem = SelectItem>(
     renderEmpty,
   ]);
 
+  const selectedSummary = useMemo(() => {
+    if (!multiple)
+      return selectedItem
+        ? renderItemLabel
+          ? renderItemLabel(selectedItem)
+          : (selectedItem.label as string)
+        : placeholder;
+    if (!selectedItems.length) return placeholder;
+    const labels = selectedItems.map((it) =>
+      renderItemLabel ? renderItemLabel(it) : (it.label as string),
+    );
+    if (labels.length <= 2) return labels.join(", ");
+    return `${labels.slice(0, 2).join(", ")} +${labels.length - 2}`;
+  }, [multiple, selectedItem, selectedItems, placeholder, renderItemLabel]);
+
   return (
     <>
       <Pressable
@@ -217,13 +288,7 @@ export function Select<TItem extends SelectItem = SelectItem>(
           justifyContent: "center",
         }}
       >
-        <ThemedText style={{ color }}>
-          {selectedItem
-            ? renderItemLabel
-              ? renderItemLabel(selectedItem)
-              : (selectedItem.label as string)
-            : placeholder}
-        </ThemedText>
+        <ThemedText style={{ color }}>{selectedSummary}</ThemedText>
       </Pressable>
 
       <Modal
@@ -261,9 +326,32 @@ export function Select<TItem extends SelectItem = SelectItem>(
               }}
             >
               <ThemedText style={{ fontWeight: "600" }}>Select</ThemedText>
-              <Pressable onPress={() => setOpen(false)}>
-                <ThemedText>Close</ThemedText>
-              </Pressable>
+              {multiple ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: PicoThemeVariables.spacing,
+                  }}
+                >
+                  <Pressable onPress={() => setOpen(false)}>
+                    <ThemedText>Cancel</ThemedText>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      const set = new Set(draftSelectedValues);
+                      const items = flatData.filter((it) => set.has(it.value));
+                      onChange?.(items);
+                      setOpen(false);
+                    }}
+                  >
+                    <ThemedText style={{ fontWeight: "600" }}>Done</ThemedText>
+                  </Pressable>
+                </View>
+              ) : (
+                <Pressable onPress={() => setOpen(false)}>
+                  <ThemedText>Close</ThemedText>
+                </Pressable>
+              )}
             </View>
 
             {header}

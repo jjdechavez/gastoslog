@@ -1,4 +1,9 @@
-import { TouchableOpacity, type TouchableOpacityProps } from "react-native";
+import {
+  type StyleProp,
+  TouchableOpacity,
+  type ViewStyle,
+  type TouchableOpacityProps,
+} from "react-native";
 import { ThemedText, ThemedTextProps } from "./ThemedText";
 import { PicoThemeVariables } from "@/styles/pico-lime";
 
@@ -43,5 +48,42 @@ export function ButtonText(props: ThemedTextProps) {
       }}
       {...props}
     />
+  );
+}
+
+type OutlineButtonProps = {
+  onPress: () => void;
+  label: string;
+  active?: boolean;
+  style?: StyleProp<ViewStyle>;
+};
+
+export function OutlineButton({
+  active = false,
+  ...props
+}: OutlineButtonProps) {
+  return (
+    <TouchableOpacity
+      style={[
+        props.style,
+        {
+          paddingVertical: 12,
+          paddingHorizontal: 16,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: "#ddd",
+          alignItems: "center",
+        },
+        active && {
+          backgroundColor: PicoThemeVariables.primaryBackground,
+          borderColor: PicoThemeVariables.primaryBorder,
+        },
+      ]}
+      onPress={props.onPress}
+    >
+      <ButtonText style={[{ fontWeight: "600" }, active && { color: "white" }]}>
+        {props.label}
+      </ButtonText>
+    </TouchableOpacity>
   );
 }

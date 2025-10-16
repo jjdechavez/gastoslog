@@ -3,11 +3,13 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import Select, { type SelectItem } from "./Select";
 import { ThemedText } from "./ThemedText";
+import { categoryKeys } from "@/services/api-hook/category";
 
 type SelectCategoryProps = {
-  value?: number | null;
-  onChange?: (item: SelectItem | null) => void;
+  value?: number | number[] | null;
+  onChange?: (item: SelectItem | SelectItem[] | null) => void;
   isLoading?: boolean;
+  multiple?: boolean;
 };
 
 export function SelectCategory(props: SelectCategoryProps) {
@@ -20,7 +22,7 @@ export function SelectCategory(props: SelectCategoryProps) {
     hasNextPage,
     error,
   } = useInfiniteQuery({
-    queryKey: ["categories-infinite"],
+    queryKey: categoryKeys.lists(),
     queryFn: ({ pageParam }) =>
       api().category.list({ page: pageParam as number, limit: 100 }),
     getNextPageParam: (lastPage) => {
@@ -61,6 +63,7 @@ export function SelectCategory(props: SelectCategoryProps) {
       placeholder="Select a category"
       renderEmpty={() => <ThemedText>No results</ThemedText>}
       renderError={() => <ThemedText>Failed to load</ThemedText>}
+      multiple={props.multiple}
     />
   );
 }

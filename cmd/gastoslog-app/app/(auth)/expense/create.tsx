@@ -2,7 +2,7 @@ import { Button, ButtonText } from "@/components/Button";
 import { Fieldset, Label } from "@/components/Fieldset";
 import { HGroup } from "@/components/HGroup";
 import { Input, InputError } from "@/components/Input";
-import { Select } from "@/components/Select";
+import { SelectCategory } from "@/components/SelectCategory";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useCategories } from "@/services/api-hook/category";
@@ -91,14 +91,9 @@ export function ExpenseForm(props: ExpenseFormProps) {
           return (
             <Fieldset>
               <Label name="Category" required />
-              <Select
-                selectedValue={value ?? ""}
-                onValueChange={(itemValue) => onChange(itemValue)}
-                enabled={!formState.isSubmitting}
-                options={props.categories.map((category) => ({
-                  label: category.name,
-                  value: category.id,
-                }))}
+              <SelectCategory 
+                value={value ?? null} 
+                onChange={(item) => onChange(item?.value ?? null)} 
               />
             </Fieldset>
           );

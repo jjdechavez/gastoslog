@@ -1,4 +1,4 @@
-import { Link, useLocalSearchParams, useRouter } from "expo-router";
+import { Link, router, useLocalSearchParams, useRouter } from "expo-router";
 import {
   FlatList,
   Pressable,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert as RNAlert,
 } from "react-native";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { Alert } from "@/components/Alert";
 import {
@@ -15,10 +16,7 @@ import {
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import {
-  useDeleteExpense,
-  useInfiniteExpenses,
-} from "@/services/api-hook/expense";
+import { expenseKeys, useDeleteExpense } from "@/services/api-hook/expense";
 import { fromCentToRegularPrice, toFormattedDate } from "@/services/string";
 import {
   PicoThemeVariables,
@@ -27,10 +25,115 @@ import {
 import { Expense } from "@/types/expense";
 import { useState } from "react";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { DatePicker } from "@/components/DatePicker";
+import { api, cleanEmptyParams } from "@/services/api";
+import { OutlineButton } from "@/components/Button";
+import { SelectCategory } from "@/components/SelectCategory";
+import { SelectItem } from "@/components/Select";
+
+function ExpenseFilters() {
+  const params = useLocalSearchParams();
+  const filterBy =
+    typeof params?.filters === "string"
+      ? [params.filters]
+      : params.filters || [];
+
+  const currentDate = new Date();
+  const selectedDate =
+    (params.date as string) ?? currentDate.toISOString().split("T")[0];
+
+  const selectedCategories = params?.category
+    ? (params.category as string)
+    : "";
+
+  return (
+    <ThemedView style={styles.expenseFilterContainer}>
+      <ThemedText>Filter By: </ThemedText>
+
+      <ThemedView style={styles.expenseFilterActionsContainer}>
+        <OutlineButton
+          style={{ flex: 1 }}
+          onPress={() => {
+            const exist = filterBy.includes("date");
+            if (exist) {
+              router.setParams({
+                filters: filterBy.filter((filter) => filter !== "date"),
+                date: undefined,
+              });
+            } else {
+              router.setParams({ filters: [...filterBy, "date"] });
+            }
+          }}
+          active={filterBy.includes("date")}
+          label="Date"
+        />
+
+        <OutlineButton
+          style={{ flex: 1 }}
+          onPress={() => {
+            const exist = filterBy.includes("category");
+            if (exist) {
+              router.setParams({
+                filters: filterBy.filter((filter) => filter !== "category"),
+                category: undefined,
+              });
+            } else {
+              router.setParams({ filters: [...filterBy, "category"] });
+            }
+          }}
+          active={filterBy.includes("category")}
+          label="Category"
+        />
+      </ThemedView>
+
+      {filterBy.includes("date") ? (
+        <DatePicker
+          value={new Date(selectedDate)}
+          onChange={(date) =>
+            router.setParams({ date: date.toISOString().split("T")[0] })
+          }
+          placeholder="Select a date"
+          maximumDate={new Date()}
+        />
+      ) : null}
+
+      {filterBy.includes("category") ? (
+        <SelectCategory
+          multiple
+          value={selectedCategories.split(",").map(Number)}
+          onChange={(categories) => {
+            const selected = categories as SelectItem[];
+            router.setParams({
+              category: selected.map((item) => item.value).join(","),
+            });
+          }}
+        />
+      ) : null}
+    </ThemedView>
+  );
+}
 
 export default function ExpenseScreen() {
-  const expenseResult = useInfiniteExpenses();
   const params = useLocalSearchParams();
+
+  const query = cleanEmptyParams({
+    date: params.date,
+    category: params.category,
+  });
+
+  const expenseResult = useInfiniteQuery({
+    queryKey: expenseKeys.list(query),
+    queryFn: ({ pageParam }) =>
+      api().expense.list({ ...query, page: pageParam as number }),
+    getNextPageParam: (lastPage) => {
+      if (lastPage.data.length === 0) {
+        return undefined;
+      }
+      return lastPage.meta.page + 1;
+    },
+    getPreviousPageParam: (firstPage) => firstPage.meta.page - 1,
+    initialPageParam: 1,
+  });
 
   if (expenseResult.status === "pending") {
     return (
@@ -65,6 +168,8 @@ export default function ExpenseScreen() {
           </TouchableOpacity>
         </Link>
       </FloatingButton>
+
+      <ExpenseFilters />
 
       <FlatList
         data={expenseResult.data.pages.flatMap((page) => page.data) || []}
@@ -164,5 +269,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 18,
+  },
+  expenseFilterContainer: {
+    display: "flex",
+    gap: 16,
+  },
+  expenseFilterActionsContainer: {
+    display: "flex",
+    flexDirection: "row",
+    gap: 16,
   },
 });
