@@ -4,7 +4,6 @@ import { ErrorMessage } from "@hookform/error-message";
 
 import { PicoThemeVariables } from "@/styles/pico-lime";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import { ThemedView } from "./ThemedView";
 import { ThemedText } from "./ThemedText";
 
 type InputErrorProps = {

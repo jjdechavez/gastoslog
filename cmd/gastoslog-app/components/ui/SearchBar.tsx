@@ -9,20 +9,23 @@ import {
 import { HStack } from "../HStack";
 import { IStyle } from "../base";
 import { IconSymbol } from "./IconSymbol";
-import { Input } from "../Input";
 import { PicoThemeVariables } from "@/styles/pico-lime";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { DebounceInput } from "../DebounceInput";
 
 interface ISearchBarProps extends IStyle<ViewStyle> {
+  value?: string;
   onSearch?: (val: string) => void;
 }
 
 export const SearchBar: React.FC<ISearchBarProps> = ({
   onSearch,
+  value = "",
   children,
   ...style
 }) => {
   const backgroundColor = useThemeColor({}, "formElementBackgroundColor");
+  const color = useThemeColor({}, "formElementColor");
 
   const inputRef = useRef<TextInput>(null);
 
@@ -47,12 +50,14 @@ export const SearchBar: React.FC<ISearchBarProps> = ({
         backgroundColor={backgroundColor}
         {...style}
       >
-        <Input
+        <DebounceInput
           ref={inputRef}
+          value={value}
           placeholder="Search"
           onChangeText={onSearch}
           style={{
             paddingVertical: PicoThemeVariables.formElementSpacingVertical,
+            color,
           }}
         />
         <IconSymbol

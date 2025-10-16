@@ -1,5 +1,6 @@
 import { FlatList, StyleSheet, TouchableOpacity } from "react-native";
-import { Link, useLocalSearchParams } from "expo-router";
+import { Link, router, useLocalSearchParams } from "expo-router";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -15,13 +16,40 @@ import {
   FloatingButton,
   styles as floatingButtonStyle,
 } from "@/components/FloatingButton";
-import { useCategories } from "@/services/api-hook/category";
+import { categoryKeys } from "@/services/api-hook/category";
+import { api } from "@/services/api";
 
 export default function CategoryScreen() {
-  const categoriesResult = useCategories();
   const params = useLocalSearchParams();
+  const query = {
+    limit: 100,
+    s: params.s as string,
+  };
 
-  if (categoriesResult.status === "pending") {
+  const { data, status, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: categoryKeys.list(query),
+    queryFn: ({ pageParam }) =>
+      api().category.list({ ...query, page: pageParam as number }),
+    getNextPageParam: (lastPage) => {
+      if (lastPage.data.length === 0) {
+        return undefined;
+      }
+      return lastPage.meta.page + 1;
+    },
+    getPreviousPageParam: (firstPage) => firstPage.meta.page - 1,
+    initialPageParam: 1,
+  });
+
+  const handleSearch = (value: string) => {
+    const prevSearch = (params?.s as string) || "";
+    if (value && value !== "") {
+      router.setParams({ s: prevSearch + value });
+    } else {
+      router.setParams({ s: undefined });
+    }
+  };
+
+  if (status === "pending") {
     return (
       <ThemedView style={pstyles.container}>
         <ThemedText style={{ fontSize: 24 }}>Loading</ThemedText>
@@ -29,7 +57,7 @@ export default function CategoryScreen() {
     );
   }
 
-  if (categoriesResult.status === "error") {
+  if (status === "error") {
     return (
       <ThemedView style={pstyles.container}>
         <ThemedText style={{ fontSize: 24 }}>Error</ThemedText>
@@ -42,7 +70,8 @@ export default function CategoryScreen() {
       {params.success ? (
         <Alert type="success" message={params.success as string} />
       ) : null}
-      <SearchBar />
+
+      <SearchBar value={params.s as string} onSearch={handleSearch} />
 
       <Separator />
 
@@ -59,12 +88,18 @@ export default function CategoryScreen() {
       </FloatingButton>
 
       <FlatList
-        data={categoriesResult.data.data}
+        data={data.pages.flatMap((page) => page.data) || []}
         renderItem={({ item }) => (
           <Link href={`/(auth)/category/${item.id}/edit`} asChild push>
             <ThemedText style={styles.item}>{item.name}</ThemedText>
           </Link>
         )}
+        ListFooterComponent={() => {
+          if (isFetchingNextPage) {
+            return <ThemedText>Loading...</ThemedText>;
+          }
+          return null;
+        }}
       />
     </ThemedView>
   );
