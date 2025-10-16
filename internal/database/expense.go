@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/guregu/null/v6"
@@ -145,9 +146,11 @@ func (r *expenseRepository) Delete(ctx context.Context, id int64) error {
 }
 
 type ListExpenseInput struct {
-	UserID int64 `json:"user_id" doc:"User ID"`
-	Page   int   `json:"page"`
-	Limit  int   `json:"limit"`
+	UserID   int64      `json:"user_id" doc:"User ID"`
+	Page     int        `json:"page"`
+	Limit    int        `json:"limit"`
+	Date     *time.Time `json:"date"`
+	Category []int64    `json:"category"`
 }
 
 type RawExpense struct {
@@ -178,7 +181,7 @@ func (r *expenseRepository) List(ctx context.Context, input ListExpenseInput) ([
 	}
 	offset := (input.Page - 1) * input.Limit
 
-	query := `
+	baseQuery := `
 		SELECT
 			expenses.id,
 			expenses.amount,
@@ -192,13 +195,52 @@ func (r *expenseRepository) List(ctx context.Context, input ListExpenseInput) ([
 			categories.updated_at as category_updated_at
 		FROM expenses
 		JOIN categories ON categories.id = expenses.category_id
-		WHERE expenses.user_id = $1
-		AND expenses.deleted_at IS NULL
-		ORDER BY expenses.created_at DESC
-		LIMIT $2 OFFSET $3;
+		WHERE expenses.deleted_at IS NULL
+		AND expenses.user_id = $1		
 	`
 
-	if err := r.db.SelectContext(ctx, &expenses, query, input.UserID, input.Limit, offset); err != nil {
+	args := []interface{}{input.UserID}
+	conditions := []string{}
+
+	if input.Date != nil {
+		startOfDay := input.Date.In(time.UTC).Truncate((24 * time.Hour))
+		endOfDay := startOfDay.Add(24 * time.Hour).Add(-time.Millisecond)
+
+		condition := fmt.Sprintf("expenses.created_at BETWEEN $%d AND $%d", len(args)+1, len(args)+2)
+		conditions = append(conditions, condition)
+		args = append(args, startOfDay, endOfDay)
+	}
+
+	if len(input.Category) > 0 {
+		placeholders := make([]string, len(input.Category))
+		for i := range input.Category {
+			placeholders[i] = fmt.Sprintf("$%d", len(args)+1+i)
+		}
+		condition := fmt.Sprintf("expenses.category_id IN (%s)", strings.Join(placeholders, ","))
+		conditions = append(conditions, condition)
+
+		for _, catID := range input.Category {
+			args = append(args, catID)
+		}
+	}
+
+	fullQuery := baseQuery
+
+	if len(conditions) > 0 {
+		fullQuery += " AND " + strings.Join(conditions, " AND ")
+	}
+
+	limitArgIndex := len(args) + 1
+	offsetArgIndex := len(args) + 2
+
+	fullQuery += fmt.Sprintf(`
+			ORDER BY expenses.created_at DESC
+			LIMIT $%d OFFSET $%d
+		`, limitArgIndex, offsetArgIndex)
+
+	args = append(args, input.Limit, offset)
+
+	if err := r.db.SelectContext(ctx, &expenses, fullQuery, args...); err != nil {
 		return nil, err
 	}
 
