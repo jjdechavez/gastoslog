@@ -16,6 +16,14 @@ export default function AuthLayout() {
   return (
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="category/create"
+        options={{ title: "Create category" }}
+      />
+      <Stack.Screen
+        name="category/[categoryId]/edit"
+        options={{ title: "Edit category" }}
+      />
       <Stack.Screen name="+not-found" />
     </Stack>
   );
