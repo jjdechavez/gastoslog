@@ -58,7 +58,7 @@ export const request = ofetch.create({
       refreshingToken = true;
       const retry = new Promise((resolve, reject) => {
         ofetch
-          .raw<string>("/v1/auth/refresh-token", {
+          .raw<{ token: string }>("/v1/auth/refresh-token", {
             baseURL: process.env.EXPO_PUBLIC_API_URL,
             method: "POST",
             credentials: "include",
@@ -67,7 +67,9 @@ export const request = ofetch.create({
             },
           })
           .then((resp) => {
-            processQueue(null, resp._data);
+            const sessionToken = resp._data?.token;
+            processQueue(null, sessionToken);
+            SecureStore.setItem("session", sessionToken || "");
             resolve(this);
           })
           .catch((err) => {
@@ -78,7 +80,7 @@ export const request = ofetch.create({
           })
           .finally(() => {
             refreshingToken = false;
-            // resolve(this)
+            // resolve(this);
           });
       });
       await retry;
