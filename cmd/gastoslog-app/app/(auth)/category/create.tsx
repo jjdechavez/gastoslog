@@ -1,4 +1,4 @@
-import { CategoryInput } from "@/services/api";
+import type { CategoryInput } from "@/types/category";
 import { useCreateCategory } from "@/services/api-hook/category";
 import { useRouter } from "expo-router";
 import { CategoryForm } from "./[categoryId]/edit";

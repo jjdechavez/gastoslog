@@ -24,6 +24,14 @@ export default function AuthLayout() {
         name="category/[categoryId]/edit"
         options={{ title: "Edit category" }}
       />
+      <Stack.Screen
+        name="expense/create"
+        options={{ title: "Create expense" }}
+      />
+      <Stack.Screen
+        name="expense/[expenseId]/edit"
+        options={{ title: "Edit expense" }}
+      />
       <Stack.Screen name="+not-found" />
     </Stack>
   );
