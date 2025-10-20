@@ -2,6 +2,7 @@ import { Button, ButtonText } from "@/components/Button";
 import { Fieldset, Label } from "@/components/Fieldset";
 import { HGroup } from "@/components/HGroup";
 import { Input, InputError } from "@/components/Input";
+import { SelectItem } from "@/components/Select";
 import { SelectCategory } from "@/components/SelectCategory";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -10,7 +11,11 @@ import { useCreateExpense } from "@/services/api-hook/expense";
 import { fromCentToRegularPrice } from "@/services/string";
 import { PicoLimeStyles } from "@/styles/pico-lime";
 import type { Category } from "@/types/category";
-import { ExpenseInputSchema, type Expense, type ExpenseInput } from "@/types/expense";
+import {
+  ExpenseInputSchema,
+  type Expense,
+  type ExpenseInput,
+} from "@/types/expense";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
@@ -91,9 +96,12 @@ export function ExpenseForm(props: ExpenseFormProps) {
           return (
             <Fieldset>
               <Label name="Category" required />
-              <SelectCategory 
-                value={value ?? null} 
-                onChange={(item) => onChange(item?.value ?? null)} 
+              <SelectCategory
+                value={value ?? null}
+                onChange={(item) =>
+                  onChange((item as SelectItem)?.value ?? null)
+                }
+                isLoading={formState.isSubmitting}
               />
             </Fieldset>
           );
