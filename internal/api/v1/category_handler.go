@@ -58,10 +58,7 @@ type ListCategoryInput struct {
 type ListCategoryOutput struct {
 	Body struct {
 		Data []CategoryResponse `json:"data" doc:"List of Categories"`
-		Meta struct {
-			Page  int `json:"page" doc:"Page number of pagination"`
-			Limit int `json:"limit" doc:"Limit per page of pagination"`
-		} `json:"meta"`
+		Meta PaginationMeta     `json:"meta"`
 	}
 }
 

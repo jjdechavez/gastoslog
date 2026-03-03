@@ -26,6 +26,8 @@ type Service interface {
 	UserRepository() UserRepository
 	CategoryRepository() CategoryRepository
 	ExpenseRepository() ExpenseRepository
+	TargetRepository() TargetRepository
+	TargetLogRepository() TargetLogRepository
 }
 
 type service struct {
@@ -130,6 +132,14 @@ func (s *service) ExpenseRepository() ExpenseRepository {
 	return NewExpenseRepository(s.db)
 }
 
+func (s *service) TargetRepository() TargetRepository {
+	return NewTargetRepository(s.db)
+}
+
+func (s *service) TargetLogRepository() TargetLogRepository {
+	return NewTargetLogRepository(s.db)
+}
+
 func initializeSchema(db *sqlx.DB) {
 	userSchema := `-- Users table stores user account information
 	CREATE TABLE IF NOT EXISTS users (
@@ -207,7 +217,6 @@ func initializeSchema(db *sqlx.DB) {
 		user_id INTEGER NOT NULL,
 		name TEXT NOT NULL,
 		target_amount INTEGER NOT NULL,
-		description TEXT,
 		type TEXT NOT NULL,
 		direction TEXT NOT NULL,
 		status TEXT NOT NULL,

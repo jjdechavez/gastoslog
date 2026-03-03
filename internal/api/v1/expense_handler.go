@@ -73,10 +73,7 @@ type ListExpenseInput struct {
 type ListExpenseOutput struct {
 	Body struct {
 		Data []ExpenseResponse `json:"data" doc:"List of Expenses"`
-		Meta struct {
-			Page  int `json:"page" doc:"Page number of pagination"`
-			Limit int `json:"limit" doc:"Limit per page of pagination"`
-		} `json:"meta"`
+		Meta PaginationMeta    `json:"meta"`
 	}
 }
 

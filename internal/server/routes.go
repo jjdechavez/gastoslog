@@ -5,6 +5,7 @@ import (
 	"gastoslog/internal/account"
 	v1 "gastoslog/internal/api/v1"
 	gastoslogMiddleware "gastoslog/internal/middleware"
+	"gastoslog/internal/target"
 	"log"
 	"net/http"
 
@@ -186,6 +187,99 @@ func (s *Server) RegisterRoutes() http.Handler {
 		Tags:        []string{"Expense"},
 		Security:    bearerSecurity,
 	}, expenseHandler.GetExpenseOverview)
+
+	targetService := target.NewService(s.db.TargetRepository(), s.db.TargetLogRepository())
+	targetHandler := v1.NewTargetHandler(targetService)
+
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "target-list",
+		Method:      http.MethodGet,
+		Path:        "/targets",
+		Summary:     "List targets",
+		Tags:        []string{"Target"},
+		Security:    bearerSecurity,
+	}, targetHandler.ListTargets)
+
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "target-create",
+		Method:      http.MethodPost,
+		Path:        "/targets",
+		Summary:     "Create target",
+		Tags:        []string{"Target"},
+		Security:    bearerSecurity,
+	}, targetHandler.CreateTarget)
+
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "target-detail",
+		Method:      http.MethodGet,
+		Path:        "/targets/{targetId}",
+		Summary:     "Get target detail",
+		Tags:        []string{"Target"},
+		Security:    bearerSecurity,
+	}, targetHandler.GetTarget)
+
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "target-update",
+		Method:      http.MethodPut,
+		Path:        "/targets/{targetId}",
+		Summary:     "Update target",
+		Tags:        []string{"Target"},
+		Security:    bearerSecurity,
+	}, targetHandler.UpdateTarget)
+
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "target-delete",
+		Method:      http.MethodDelete,
+		Path:        "/targets/{targetId}",
+		Summary:     "Delete target",
+		Tags:        []string{"Target"},
+		Security:    bearerSecurity,
+	}, targetHandler.DeleteTarget)
+
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "target-log-list",
+		Method:      http.MethodGet,
+		Path:        "/targets/{targetId}/logs",
+		Summary:     "List target logs",
+		Tags:        []string{"Target Log"},
+		Security:    bearerSecurity,
+	}, targetHandler.ListTargetLogs)
+
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "target-log-create",
+		Method:      http.MethodPost,
+		Path:        "/targets/{targetId}/logs",
+		Summary:     "Create target log",
+		Tags:        []string{"Target Log"},
+		Security:    bearerSecurity,
+	}, targetHandler.CreateTargetLog)
+
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "target-log-detail",
+		Method:      http.MethodGet,
+		Path:        "/targets/{targetId}/logs/{logId}",
+		Summary:     "Get target log detail",
+		Tags:        []string{"Target Log"},
+		Security:    bearerSecurity,
+	}, targetHandler.GetTargetLog)
+
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "target-log-update",
+		Method:      http.MethodPut,
+		Path:        "/targets/{targetId}/logs/{logId}",
+		Summary:     "Update target log",
+		Tags:        []string{"Target Log"},
+		Security:    bearerSecurity,
+	}, targetHandler.UpdateTargetLog)
+
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "target-log-delete",
+		Method:      http.MethodDelete,
+		Path:        "/targets/{targetId}/logs/{logId}",
+		Summary:     "Delete target log",
+		Tags:        []string{"Target Log"},
+		Security:    bearerSecurity,
+	}, targetHandler.DeleteTargetLog)
 
 	return r
 }
