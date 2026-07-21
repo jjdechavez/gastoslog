@@ -26,7 +26,6 @@ import { EmptyState, ListFooterLoader, LoadingState, ErrorState } from "@/compon
 
 function TargetDetailHeader({ targetId }: { targetId: string }) {
   const targetQuery = useTarget(targetId);
-  const logsQuery = useTargetLogs(targetId);
 
   if (targetQuery.isPending) {
     return <LoadingState message="Loading target..." />;
@@ -37,12 +36,12 @@ function TargetDetailHeader({ targetId }: { targetId: string }) {
   }
 
   const target = targetQuery.data.data;
-  const logs = logsQuery.data?.pages.flatMap((page) => page.data) || [];
 
-  const currentAmount = logs.reduce((sum, log) => sum + log.amount, 0);
-  const targetAmount = target.targetAmount / 100;
+  const currentAmount = target.paidAmount;
   const progress =
-    targetAmount > 0 ? Math.min((currentAmount / targetAmount) * 100, 100) : 0;
+    target.targetAmount > 0
+      ? Math.min((currentAmount / target.targetAmount) * 100, 100)
+      : 0;
 
   return (
     <ThemedView>
@@ -60,12 +59,18 @@ function TargetDetailHeader({ targetId }: { targetId: string }) {
           <ThemedText style={styles.progressValue} type="defaultSemiBold">
             {progress.toFixed(0)}%
           </ThemedText>
-          <ThemedText type="caption">
-            <Amount cents={currentAmount} type="caption" />
-            {" / "}
-            <Amount cents={target.targetAmount} type="caption" />
-          </ThemedText>
         </ProgressRing>
+
+        <View style={styles.amountSummary}>
+          <Amount
+            cents={currentAmount}
+            type="subtitle"
+            style={styles.amountPaid}
+          />
+          <ThemedText type="caption" style={styles.amountTargetLabel}>
+            of <Amount cents={target.targetAmount} type="caption" /> target
+          </ThemedText>
+        </View>
       </View>
     </ThemedView>
   );
@@ -97,7 +102,11 @@ export default function TargetDetailScreen() {
   const params = useLocalSearchParams();
   const targetId = params.targetId as string;
 
+  const targetQuery = useTarget(targetId);
   const logsQuery = useTargetLogs(targetId);
+
+  const status = targetQuery.data?.data.status;
+  const canLogPayment = status !== "completed" && status !== "cancelled";
 
   return (
     <Screen>
@@ -135,44 +144,46 @@ export default function TargetDetailScreen() {
           contentContainerStyle={styles.listContent}
         />
 
-        <Card>
-          <Row style={{ marginBottom: 16 }}>
-            <Row justify="flex-start" style={{ flex: 1, marginRight: 12 }}>
-              <IconCircle
-                size={32}
-                backgroundColor={PicoThemeVariables.primaryHoverBackground}
-                style={{ marginRight: 12 }}
-              >
-                <IconSymbol
-                  name="creditcard"
-                  size={16}
-                  color={PicoThemeVariables.primaryColor}
-                />
-              </IconCircle>
-              <View>
-                <ThemedText type="defaultSemiBold">
-                  Also log as expense
-                </ThemedText>
-                <ThemedText type="caption">
-                  Sync payment with your main Gastoslog
-                </ThemedText>
-              </View>
+        {canLogPayment && (
+          <Card>
+            <Row style={{ marginBottom: 16 }}>
+              <Row justify="flex-start" style={{ flex: 1, marginRight: 12 }}>
+                <IconCircle
+                  size={32}
+                  backgroundColor={PicoThemeVariables.primaryHoverBackground}
+                  style={{ marginRight: 12 }}
+                >
+                  <IconSymbol
+                    name="creditcard"
+                    size={16}
+                    color={PicoThemeVariables.primaryColor}
+                  />
+                </IconCircle>
+                <View>
+                  <ThemedText type="defaultSemiBold">
+                    Also log as expense
+                  </ThemedText>
+                  <ThemedText type="caption">
+                    Sync payment with your main Gastoslog
+                  </ThemedText>
+                </View>
+              </Row>
+              <Switch value={true} onValueChange={() => {}} />
             </Row>
-            <Switch value={true} onValueChange={() => {}} />
-          </Row>
-          <Link href={`/target/${targetId}/log`} asChild push>
-            <Button style={styles.primaryButton}>
-              <IconSymbol
-                name="plus"
-                size={18}
-                color={PicoThemeVariables.backgroundColor}
-              />
-              <ThemedText style={styles.primaryButtonText}>
-                Log Payment
-              </ThemedText>
-            </Button>
-          </Link>
-        </Card>
+            <Link href={`/target/${targetId}/log`} asChild push>
+              <Button style={styles.primaryButton}>
+                <IconSymbol
+                  name="plus"
+                  size={18}
+                  color={PicoThemeVariables.backgroundColor}
+                />
+                <ThemedText style={styles.primaryButtonText}>
+                  Log Payment
+                </ThemedText>
+              </Button>
+            </Link>
+          </Card>
+        )}
       </View>
     </Screen>
   );
@@ -197,6 +208,17 @@ const styles = StyleSheet.create({
   },
   progressValue: {
     fontSize: 28,
+  },
+  amountSummary: {
+    marginTop: 16,
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  amountPaid: {
+    fontSize: 26,
+  },
+  amountTargetLabel: {
+    marginTop: 2,
   },
   filterText: {
     color: PicoThemeVariables.primaryColor,

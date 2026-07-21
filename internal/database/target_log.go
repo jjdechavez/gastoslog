@@ -31,6 +31,7 @@ type TargetLogRepository interface {
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, input ListTargetLogInput) ([]RawTargetLog, error)
 	ExistWithUserID(ctx context.Context, input ExistTargetLogWithUserIDInput) (bool, error)
+	SumAmountByTargetID(ctx context.Context, targetID int64) (int64, error)
 }
 
 type targetLogRepository struct {
@@ -189,9 +190,9 @@ func (r *targetLogRepository) List(ctx context.Context, input ListTargetLogInput
 	conditions := []string{}
 
 	if input.TargetID.Valid {
-		condition := fmt.Sprintf("target_id = %d", len(args)+1)
+		condition := fmt.Sprintf("target_id = $%d", len(args)+1)
 		conditions = append(conditions, condition)
-		args = append(args, input.TargetID)
+		args = append(args, input.TargetID.Int64)
 	}
 
 	fullQuery := baseQuery
@@ -239,4 +240,22 @@ func (r *targetLogRepository) ExistWithUserID(ctx context.Context, input ExistTa
 	}
 
 	return count > 0, nil
+}
+
+func (r *targetLogRepository) SumAmountByTargetID(ctx context.Context, targetID int64) (int64, error) {
+	var sum int64
+	query := `
+		SELECT
+			COALESCE(SUM(amount), 0)
+		FROM target_logs
+		WHERE target_id = $1
+		AND deleted_at IS NULL
+	`
+
+	err := r.db.GetContext(ctx, &sum, query, targetID)
+	if err != nil {
+		return 0, err
+	}
+
+	return sum, nil
 }

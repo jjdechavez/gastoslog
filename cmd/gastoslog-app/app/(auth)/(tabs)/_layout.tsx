@@ -41,7 +41,11 @@ export default function TabLayout() {
         options={{
           title: "Expenses",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="receiptlong" color={color} />
+            <IconSymbol
+              size={28}
+              name="list.bullet.rectangle.portrait"
+              color={color}
+            />
           ),
         }}
       />

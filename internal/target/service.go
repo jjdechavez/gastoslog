@@ -19,6 +19,7 @@ type TargetResponse struct {
 	ID           int64      `json:"id"`
 	Name         string     `json:"name"`
 	TargetAmount int64      `json:"targetAmount"`
+	PaidAmount   int64      `json:"paidAmount"`
 	Type         string     `json:"type"`
 	Direction    string     `json:"direction"`
 	Status       string     `json:"status"`
@@ -120,7 +121,14 @@ func (s *Service) GetTargetByID(ctx context.Context, targetID, userID int64) (*T
 		return nil, err
 	}
 
-	return toRawTargetResponse(rawTarget), nil
+	paidAmount, err := s.targetLogRepo.SumAmountByTargetID(ctx, targetID)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := toRawTargetResponse(rawTarget)
+	resp.PaidAmount = paidAmount
+	return resp, nil
 }
 
 func (s *Service) UpdateTarget(ctx context.Context, userID int64, input UpdateTargetInput) error {
@@ -277,9 +285,10 @@ func (s *Service) ListTargetLogs(ctx context.Context, targetID, userID int64, pa
 	}
 
 	rawTargetLogs, err := s.targetLogRepo.List(ctx, database.ListTargetLogInput{
-		UserID: userID,
-		Page:   page,
-		Limit:  limit,
+		UserID:   userID,
+		Page:     page,
+		Limit:    limit,
+		TargetID: null.NewInt(targetID, true),
 	})
 	if err != nil {
 		return nil, err

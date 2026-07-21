@@ -5,6 +5,7 @@ export const TargetSchema = z.object({
   id: z.number().nonnegative(),
   name: z.string().min(3).max(255),
   targetAmount: z.number(),
+  paidAmount: z.number(),
   type: z.enum(["savings", "debt", "loan"]),
   direction: z.enum(["inbound", "outbound"]),
   status: z.enum(["active", "completed", "cancelled"]),
@@ -22,6 +23,7 @@ export const TargetInputSchema = TargetSchema.omit({
   createdAt: true,
   updatedAt: true,
   status: true,
+  paidAmount: true,
 }).extend({
   targetAmount: z.coerce
     .number({ error: "Target amount is required" })

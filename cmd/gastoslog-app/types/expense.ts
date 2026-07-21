@@ -1,5 +1,6 @@
 import { z } from "zod/v4";
-import { CategorySchema, ListResponse } from "./category";
+import { CategorySchema } from "./category";
+import { ListResponse } from "./api";
 
 export const ExpenseSchema = z.object({
   id: z.number().nonnegative(),

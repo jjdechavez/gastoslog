@@ -25,7 +25,7 @@ const MAPPING = {
   creditcard: "credit-card",
   xmark: "close",
   flag: "flag",
-  receiptlong: "receipt-long",
+  "list.bullet.rectangle.portrait": "receipt-long",
 } as const satisfies Partial<Record<SymbolViewProps["name"], MaterialIconName>>;
 
 type IconSymbolName = keyof typeof MAPPING;

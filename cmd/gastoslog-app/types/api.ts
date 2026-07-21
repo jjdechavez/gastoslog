@@ -3,3 +3,8 @@ export type ListMeta = {
   limit: number;
   s?: string;
 };
+
+export type ListResponse<T> = {
+  data: Array<T>;
+  meta: ListMeta;
+};
