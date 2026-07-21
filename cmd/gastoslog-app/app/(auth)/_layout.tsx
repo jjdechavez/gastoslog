@@ -43,7 +43,11 @@ export default function AuthLayout() {
       />
       <Stack.Screen
         name="target/[targetId]/log"
-        options={{ title: "Add Progress", headerTitleAlign: "center" }}
+        options={{
+          title: "Add Progress",
+          headerTitleAlign: "center",
+          headerTitleStyle: { fontSize: 16 },
+        }}
       />
       <Stack.Screen name="+not-found" />
     </Stack>

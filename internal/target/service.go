@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"gastoslog/internal/database"
+	"gastoslog/internal/validation"
 	"time"
 
 	"github.com/guregu/null/v6"
@@ -82,7 +83,7 @@ func (s *Service) CreateTarget(ctx context.Context, userID int64, input CreateTa
 	if input.DeadlineAt != "" {
 		t, err := time.Parse(time.RFC3339, input.DeadlineAt)
 		if err != nil {
-			return nil, errors.New("invalid deadline format")
+			return nil, validation.NewFieldError("deadlineAt", "invalid deadline, expected RFC3339 date-time", input.DeadlineAt)
 		}
 		parsedDeadline = null.NewTime(t, true)
 	}
@@ -138,7 +139,7 @@ func (s *Service) UpdateTarget(ctx context.Context, userID int64, input UpdateTa
 	if input.DeadlineAt != "" {
 		t, err := time.Parse(time.RFC3339, input.DeadlineAt)
 		if err != nil {
-			return errors.New("invalid deadline format")
+			return validation.NewFieldError("deadlineAt", "invalid deadline, expected RFC3339 date-time", input.DeadlineAt)
 		}
 		parsedDeadline = null.NewTime(t, true)
 	}
@@ -219,12 +220,12 @@ func (s *Service) CreateTargetLog(ctx context.Context, userID int64, input Creat
 	}
 
 	if input.Amount <= 0 {
-		return nil, errors.New("amount should be positive")
+		return nil, validation.NewFieldError("amount", "amount must be greater than zero", input.Amount)
 	}
 
 	entryDate, err := time.Parse(time.RFC3339, input.EntryDate)
 	if err != nil {
-		return nil, errors.New("invalid entry date format")
+		return nil, validation.NewFieldError("entryDate", "invalid entry date, expected RFC3339 date-time", input.EntryDate)
 	}
 
 	notes := null.NewString(input.Notes, input.Notes != "")
@@ -306,12 +307,12 @@ func (s *Service) UpdateTargetLog(ctx context.Context, userID int64, input Updat
 	}
 
 	if input.Amount <= 0 {
-		return errors.New("invalid amount")
+		return validation.NewFieldError("amount", "amount must be greater than zero", input.Amount)
 	}
 
 	entryDate, err := time.Parse(time.RFC3339, input.EntryDate)
 	if err != nil {
-		return errors.New("invalid entry date format")
+		return validation.NewFieldError("entryDate", "invalid entry date, expected RFC3339 date-time", input.EntryDate)
 	}
 
 	notes := null.NewString(input.Notes, input.Notes != "")

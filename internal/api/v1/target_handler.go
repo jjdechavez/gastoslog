@@ -20,10 +20,10 @@ func NewTargetHandler(targetService *target.Service) *TargetHandler {
 type CreateTargetInput struct {
 	Body struct {
 		Name         string  `json:"name" minLength:"3" maxLength:"255"`
-		TargetAmount float64 `json:"targetAmount" required:"true"`
+		TargetAmount float64 `json:"targetAmount" required:"true" minimum:"1"`
 		Type         string  `json:"type" required:"true" enum:"savings,debt,loan"`
 		Direction    string  `json:"direction" required:"true" enum:"inbound,outbound"`
-		DeadlineAt   string  `json:"deadlineAt,omitempty"`
+		DeadlineAt   string  `json:"deadlineAt,omitempty" format:"date-time"`
 	}
 }
 
@@ -48,7 +48,7 @@ func (h *TargetHandler) CreateTarget(ctx context.Context, input *CreateTargetInp
 		DeadlineAt:   input.Body.DeadlineAt,
 	})
 	if err != nil {
-		return nil, huma.Error400BadRequest(err.Error())
+		return nil, mapServiceError(err)
 	}
 
 	resp.Body.Data = *createdTarget
@@ -126,7 +126,7 @@ type UpdateTargetInput struct {
 		Status       string  `json:"status,omitempty" enum:"active,completed,cancelled"`
 		Type         string  `json:"type" required:"true" enum:"savings,debt,loan"`
 		Direction    string  `json:"direction" required:"true" enum:"inbound,outbound"`
-		DeadlineAt   string  `json:"deadlineAt,omitempty"`
+		DeadlineAt   string  `json:"deadlineAt,omitempty" format:"date-time"`
 	}
 }
 
@@ -157,7 +157,7 @@ func (h *TargetHandler) UpdateTarget(ctx context.Context, input *UpdateTargetInp
 		DeadlineAt:   input.Body.DeadlineAt,
 	})
 	if err != nil {
-		return nil, huma.Error400BadRequest(err.Error())
+		return nil, mapServiceError(err)
 	}
 
 	updatedTarget, err := h.targetService.GetTargetByID(ctx, targetID, int64(userID))
@@ -196,9 +196,9 @@ func (h *TargetHandler) DeleteTarget(ctx context.Context, input *DeleteTargetInp
 type CreateTargetLogInput struct {
 	TargetID string `path:"targetId" doc:"Target ID"`
 	Body     struct {
-		Amount    float64 `json:"amount" required:"true"`
+		Amount    float64 `json:"amount" required:"true" minimum:"1"`
 		Notes     string  `json:"notes"`
-		EntryDate string  `json:"entryDate" required:"true"`
+		EntryDate string  `json:"entryDate" required:"true" format:"date-time"`
 	}
 }
 
@@ -226,7 +226,7 @@ func (h *TargetHandler) CreateTargetLog(ctx context.Context, input *CreateTarget
 		EntryDate: input.Body.EntryDate,
 	})
 	if err != nil {
-		return nil, huma.Error400BadRequest(err.Error())
+		return nil, mapServiceError(err)
 	}
 
 	resp := &CreateTargetLogOutput{}
@@ -306,9 +306,9 @@ type UpdateTargetLogInput struct {
 	TargetID string `path:"targetId" doc:"Target ID"`
 	LogID    string `path:"logId" doc:"Log ID"`
 	Body     struct {
-		Amount    float64 `json:"amount"`
+		Amount    float64 `json:"amount" minimum:"1"`
 		Notes     string  `json:"notes,omitempty"`
-		EntryDate string  `json:"entryDate"`
+		EntryDate string  `json:"entryDate" format:"date-time"`
 	}
 }
 
@@ -336,7 +336,7 @@ func (h *TargetHandler) UpdateTargetLog(ctx context.Context, input *UpdateTarget
 		EntryDate:   input.Body.EntryDate,
 	})
 	if err != nil {
-		return nil, huma.Error400BadRequest(err.Error())
+		return nil, mapServiceError(err)
 	}
 
 	updatedLog, err := h.targetService.GetTargetLogByID(ctx, logID, int64(userID))

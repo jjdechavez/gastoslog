@@ -1,18 +1,20 @@
+import { Alert } from "@/components/Alert";
 import { Button, ButtonText } from "@/components/Button";
 import { Fieldset, Label } from "@/components/Fieldset";
 import { HGroup } from "@/components/HGroup";
 import { DatePicker } from "@/components/DatePicker";
 import { FormField } from "@/components/FormField";
+import { InputError } from "@/components/Input";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { Screen } from "@/components/Screen";
 import { useCreateTarget } from "@/services/api-hook/target";
-import {
-  TargetInputSchema,
-  type TargetInput,
-} from "@/types/target";
+import { applyServerFieldErrors, getErrorMessage } from "@/services/errors";
+import { TargetInputSchema, type TargetInput } from "@/types/target";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, type UseFormReturn } from "react-hook-form";
+import { useState } from "react";
+import type { z } from "zod/v4";
 
 const TARGET_TYPES = [
   { label: "Savings", value: "savings" },
@@ -25,36 +27,34 @@ const TARGET_DIRECTIONS = [
   { label: "Outbound", value: "outbound" },
 ] as const;
 
+export type TargetFormValues = z.input<typeof TargetInputSchema>;
+
 export function TargetForm({
+  form,
   onSubmit,
+  submitError,
+  isSubmitting,
 }: {
+  form: UseFormReturn<TargetFormValues, any, TargetInput>;
   onSubmit: (input: TargetInput) => void;
+  submitError?: string | null;
+  isSubmitting?: boolean;
 }) {
-  const { control, handleSubmit } = useForm({
-    defaultValues: {
-      name: "",
-      targetAmount: undefined as number | undefined,
-      type: "savings" as const,
-      direction: "inbound" as const,
-      deadlineAt: undefined as Date | undefined,
-    },
-    resolver: zodResolver(TargetInputSchema),
-  });
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = form;
 
   const onFormSubmit = handleSubmit((payload) => {
-    const input: TargetInput = {
-      name: payload.name,
-      targetAmount: payload.targetAmount!,
-      type: payload.type,
-      direction: payload.direction,
-      deadlineAt: payload.deadlineAt?.toISOString(),
-    };
-    onSubmit(input);
+    onSubmit(payload);
   });
 
   return (
     <Screen scroll keyboardAvoiding>
       <HGroup title="New Target" />
+
+      {submitError ? <Alert type="error" message={submitError} /> : null}
 
       <FormField
         control={control}
@@ -87,6 +87,7 @@ export function TargetForm({
           </Fieldset>
         )}
       />
+      <InputError name="type" errors={errors as Record<string, unknown>} />
 
       <Controller
         name="direction"
@@ -102,6 +103,10 @@ export function TargetForm({
           </Fieldset>
         )}
       />
+      <InputError
+        name="direction"
+        errors={errors as Record<string, unknown>}
+      />
 
       <Controller
         name="deadlineAt"
@@ -110,17 +115,21 @@ export function TargetForm({
           <Fieldset>
             <Label name="Deadline (Optional)" />
             <DatePicker
-              value={value || new Date()}
-              onChange={(date) => onChange(date)}
+              value={value}
+              onChange={(date) => onChange(date.toISOString())}
               placeholder="Select deadline"
               minimumDate={new Date()}
             />
           </Fieldset>
         )}
       />
+      <InputError
+        name="deadlineAt"
+        errors={errors as Record<string, unknown>}
+      />
 
-      <Button onPressIn={onFormSubmit}>
-        <ButtonText>Create Target</ButtonText>
+      <Button onPressIn={onFormSubmit} disabled={isSubmitting}>
+        <ButtonText>{isSubmitting ? "Creating..." : "Create Target"}</ButtonText>
       </Button>
     </Screen>
   );
@@ -128,6 +137,18 @@ export function TargetForm({
 
 export default function CreateTargetScreen() {
   const router = useRouter();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const form = useForm<TargetFormValues, any, TargetInput>({
+    defaultValues: {
+      name: "",
+      targetAmount: undefined,
+      type: "savings",
+      direction: "inbound",
+      deadlineAt: undefined,
+    },
+    resolver: zodResolver(TargetInputSchema),
+  });
 
   const mutation = useCreateTarget({
     onSuccess: () => {
@@ -138,11 +159,25 @@ export default function CreateTargetScreen() {
         },
       });
     },
+    onError: (error) => {
+      applyServerFieldErrors(error, form);
+      setSubmitError(
+        getErrorMessage(error, "Unable to create target. Please try again."),
+      );
+    },
   });
 
   const onSubmit = (payload: TargetInput) => {
+    setSubmitError(null);
     mutation.mutate(payload);
   };
 
-  return <TargetForm onSubmit={onSubmit} />;
+  return (
+    <TargetForm
+      form={form}
+      onSubmit={onSubmit}
+      submitError={submitError}
+      isSubmitting={mutation.isPending}
+    />
+  );
 }

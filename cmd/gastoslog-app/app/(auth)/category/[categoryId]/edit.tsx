@@ -1,7 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, type UseFormReturn } from "react-hook-form";
+import { useEffect, useState } from "react";
+import type { z } from "zod/v4";
 
+import { Alert } from "@/components/Alert";
 import { Button, ButtonText } from "@/components/Button";
 import { HGroup } from "@/components/HGroup";
 import { FormField } from "@/components/FormField";
@@ -12,15 +15,31 @@ import {
   useCategory,
   useUpdateCategory,
 } from "@/services/api-hook/category";
-import { CategoryInputSchema, type Category, type CategoryInput } from "@/types/category";
+import { applyServerFieldErrors, getErrorMessage } from "@/services/errors";
+import { CategoryInputSchema, type CategoryInput } from "@/types/category";
 import { useLocalSearchParams, useRouter } from "expo-router";
+
+export type CategoryFormValues = z.input<typeof CategoryInputSchema>;
 
 export default function EditCategoryScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { categoryId } = useLocalSearchParams();
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { data, status } = useCategory(categoryId as string);
+
+  const form = useForm<CategoryFormValues, any, CategoryInput>({
+    defaultValues: { name: "", description: "" },
+    resolver: zodResolver(CategoryInputSchema),
+  });
+
+  useEffect(() => {
+    if (data?.data) {
+      form.reset({ name: data.data.name, description: data.data.description });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.data]);
 
   const mutation = useUpdateCategory(categoryId as string, {
     onSuccess: (updatedCategory) => {
@@ -35,15 +54,28 @@ export default function EditCategoryScreen() {
         },
       });
     },
+    onError: (error) => {
+      applyServerFieldErrors(error, form);
+      setSubmitError(
+        getErrorMessage(error, "Unable to update category. Please try again."),
+      );
+    },
   });
 
   const onSubmit = (input: CategoryInput) => {
+    setSubmitError(null);
     mutation.mutate(input);
   };
 
   if (status === "success") {
     return (
-      <CategoryForm action="edit" category={data.data} onSubmit={onSubmit} />
+      <CategoryForm
+        action="edit"
+        form={form}
+        onSubmit={onSubmit}
+        submitError={submitError}
+        isSubmitting={mutation.isPending}
+      />
     );
   }
 
@@ -51,7 +83,10 @@ export default function EditCategoryScreen() {
 }
 
 type CategoryFormBaseProps = {
+  form: UseFormReturn<CategoryFormValues, any, CategoryInput>;
   onSubmit: (input: CategoryInput) => void;
+  submitError?: string | null;
+  isSubmitting?: boolean;
 };
 
 type CreateCategoryFormProps = CategoryFormBaseProps & {
@@ -60,27 +95,14 @@ type CreateCategoryFormProps = CategoryFormBaseProps & {
 
 type EditCategoryFormProps = CategoryFormBaseProps & {
   action: "edit";
-  category: Category;
 };
 
 type CategoryFormProps = CreateCategoryFormProps | EditCategoryFormProps;
 
 export function CategoryForm(props: CategoryFormProps) {
-  let title = "New Category";
-  if (props.action === "edit") {
-    title = "Edit Category";
-  }
+  const title = props.action === "edit" ? "Edit Category" : "New Category";
 
-  const { control, handleSubmit } = useForm({
-    defaultValues:
-      props.action === "edit"
-        ? { name: props.category.name, description: props.category.description }
-        : {
-            name: "",
-            description: "",
-          },
-    resolver: zodResolver(CategoryInputSchema),
-  });
+  const { control, handleSubmit } = props.form;
 
   const onSubmit = handleSubmit((payload) => {
     props.onSubmit(payload);
@@ -89,6 +111,10 @@ export function CategoryForm(props: CategoryFormProps) {
   return (
     <Screen scroll keyboardAvoiding>
       <HGroup title={title} />
+
+      {props.submitError ? (
+        <Alert type="error" message={props.submitError} />
+      ) : null}
 
       <FormField
         control={control}
@@ -107,9 +133,11 @@ export function CategoryForm(props: CategoryFormProps) {
         autoCapitalize="none"
       />
 
-      <Button onPressIn={onSubmit}>
+      <Button onPressIn={onSubmit} disabled={props.isSubmitting}>
         <ButtonText>
-          {props.action === "create" ? "Create" : "Update"} category
+          {props.isSubmitting
+            ? "Saving..."
+            : `${props.action === "create" ? "Create" : "Update"} category`}
         </ButtonText>
       </Button>
     </Screen>

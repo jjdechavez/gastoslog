@@ -1,6 +1,7 @@
 import { createContext, useContext } from "react";
 import { useStorageState } from "@/hooks/useStorageState";
 import { api } from "@/services/api";
+import { getErrorMessage } from "@/services/errors";
 
 type SessionContextType = {
   isLoading: boolean;
@@ -15,11 +16,6 @@ type SessionContextType = {
   ) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
 };
-
-function getErrorMessage(error: unknown, fallback: string) {
-  const data = (error as { data?: { detail?: string } } | undefined)?.data;
-  return data?.detail || fallback;
-}
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
