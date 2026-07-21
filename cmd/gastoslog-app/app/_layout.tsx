@@ -9,6 +9,7 @@ import { Stack } from "expo-router";
 import "react-native-reanimated";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useReactQueryDevTools } from "@dev-plugins/react-query";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { SessionProvider } from "@/context/session";
@@ -28,15 +29,19 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <SessionProvider>
-          <StatusBar style="auto" />
-          <Stack>
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          </Stack>
-        </SessionProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider
+          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        >
+          <SessionProvider>
+            <StatusBar style="auto" />
+            <Stack>
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            </Stack>
+          </SessionProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }

@@ -1,19 +1,17 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 
 import { Button, ButtonText } from "@/components/Button";
-import { Fieldset, Label } from "@/components/Fieldset";
 import { HGroup } from "@/components/HGroup";
-import { Input, InputError } from "@/components/Input";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import { FormField } from "@/components/FormField";
+import { LoadingState } from "@/components/ScreenState";
+import { Screen } from "@/components/Screen";
 import {
   categoryKeys,
   useCategory,
   useUpdateCategory,
 } from "@/services/api-hook/category";
-import { PicoLimeStyles } from "@/styles/pico-lime";
 import { CategoryInputSchema, type Category, type CategoryInput } from "@/types/category";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
@@ -49,7 +47,7 @@ export default function EditCategoryScreen() {
     );
   }
 
-  return <ThemedText>Loading</ThemedText>;
+  return <LoadingState />;
 }
 
 type CategoryFormBaseProps = {
@@ -73,7 +71,7 @@ export function CategoryForm(props: CategoryFormProps) {
     title = "Edit Category";
   }
 
-  const { control, formState, handleSubmit } = useForm({
+  const { control, handleSubmit } = useForm({
     defaultValues:
       props.action === "edit"
         ? { name: props.category.name, description: props.category.description }
@@ -89,57 +87,31 @@ export function CategoryForm(props: CategoryFormProps) {
   });
 
   return (
-    <ThemedView style={PicoLimeStyles.container}>
+    <Screen scroll keyboardAvoiding>
       <HGroup title={title} />
 
-      <Controller
-        name="name"
+      <FormField
         control={control}
-        render={({ field: { onChange, onBlur, value }, formState }) => {
-          return (
-            <Fieldset>
-              <Label name="Name" required />
-              <Input
-                placeholder="Name"
-                autoCapitalize="none"
-                onChangeText={onChange}
-                onBlur={onBlur}
-                value={value}
-                hasError={!!formState.errors.name}
-                isLoading={formState.isSubmitting}
-              />
-            </Fieldset>
-          );
-        }}
+        name="name"
+        label="Name"
+        required
+        placeholder="Name"
+        autoCapitalize="none"
       />
-      <InputError name="name" errors={formState.errors} />
 
-      <Controller
+      <FormField
         control={control}
         name="description"
-        render={({ field: { onChange, onBlur, value } }) => {
-          return (
-            <Fieldset>
-              <Label name="Description" />
-              <Input
-                placeholder="Description"
-                autoCapitalize="none"
-                onChangeText={onChange}
-                onBlur={onBlur}
-                value={value ?? ""}
-                isLoading={formState.isSubmitting}
-              />
-            </Fieldset>
-          );
-        }}
+        label="Description"
+        placeholder="Description"
+        autoCapitalize="none"
       />
-      <InputError name="description" errors={formState.errors} />
 
       <Button onPressIn={onSubmit}>
         <ButtonText>
           {props.action === "create" ? "Create" : "Update"} category
         </ButtonText>
       </Button>
-    </ThemedView>
+    </Screen>
   );
 }

@@ -1,27 +1,21 @@
-import { Link, useLocalSearchParams, useRouter } from "expo-router";
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { FlatList, Pressable } from "react-native";
 
 import { Alert } from "@/components/Alert";
-import {
-  FloatingButton,
-  styles as floatingButtonStyle,
-} from "@/components/FloatingButton";
+import { FloatingButton } from "@/components/FloatingButton";
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { IconSymbol } from "@/components/ui/IconSymbol";
-import { useTargetLogs, useTargets } from "@/services/api-hook/target";
-import { fromCentToRegularPrice, toFormattedDate } from "@/services/string";
+import { Screen } from "@/components/Screen";
+import { Row } from "@/components/Row";
+import { Badge } from "@/components/Badge";
+import { ProgressBar } from "@/components/ProgressBar";
+import { Amount } from "@/components/Amount";
 import {
-  PicoLimeStyles,
-  PicoThemeVariables,
-  PicoLimeStyles as pstyles,
-} from "@/styles/pico-lime";
+  ScreenState,
+  EmptyState,
+  ListFooterLoader,
+} from "@/components/ScreenState";
+import { useTargetLogs, useTargets } from "@/services/api-hook/target";
+import { toFormattedDate } from "@/services/string";
 import { Target } from "@/types/target";
 import { HGroup } from "@/components/HGroup";
 import { Card, CardBody, CardHeader } from "@/components/Card";
@@ -47,21 +41,14 @@ function TargetItem({
     <Pressable onPress={onPress}>
       <Card>
         <CardHeader>
-          <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
-          >
+          <Row>
             <ThemedText type="defaultSemiBold">{target.name}</ThemedText>
-            <View
-              style={[
-                styles.statusBadge,
-                isCompleted && styles.statusCompleted,
-              ]}
-            >
-              <ThemedText style={styles.statusText}>{target.status}</ThemedText>
-            </View>
-          </View>
+            <Badge variant={isCompleted ? "success" : "default"}>
+              {target.status}
+            </Badge>
+          </Row>
 
-          <View style={styles.targetInfo}>
+          <Row style={{ marginBottom: 12 }}>
             <ThemedText type="muted">
               {target.type} • {target.direction}
             </ThemedText>
@@ -70,39 +57,24 @@ function TargetItem({
                 Due: {toFormattedDate(target.deadlineAt.toString())}
               </ThemedText>
             )}
-          </View>
+          </Row>
         </CardHeader>
 
         <CardBody>
-          <View style={styles.progressContainer}>
-            <View
-              style={{ flexDirection: "row", justifyContent: "space-between" }}
-            >
-              <ThemedText type="muted">Progress</ThemedText>
-              <View style={{ flexDirection: "row" }}>
-                <ThemedText style={styles.progressText}>
-                  {fromCentToRegularPrice(currentAmount * 100, {
-                    type: "withDecimal",
-                  })}
-                </ThemedText>
-                <ThemedText type="muted">
-                  {" / "}
-                  {fromCentToRegularPrice(target.targetAmount, {
-                    type: "withDecimal",
-                  })}
-                </ThemedText>
-              </View>
-            </View>
-            <View style={styles.progressBar}>
-              <View
-                style={[
-                  styles.progressFill,
-                  { width: `${progress}%` },
-                  isCompleted && styles.progressCompleted,
-                ]}
+          <Row style={{ marginBottom: 8 }}>
+            <ThemedText type="muted">Progress</ThemedText>
+            <Row justify="flex-end" gap={0}>
+              <Amount
+                cents={currentAmount * 100}
+                style={{ textAlign: "right", fontSize: 14 }}
               />
-            </View>
-          </View>
+              <ThemedText type="muted">
+                {" / "}
+                <Amount cents={target.targetAmount} type="muted" />
+              </ThemedText>
+            </Row>
+          </Row>
+          <ProgressBar value={progress} completed={isCompleted} />
         </CardBody>
       </Card>
     </Pressable>
@@ -137,112 +109,36 @@ export default function TargetScreen() {
 
   const targetResult = useTargets(query);
 
-  if (targetResult.isPending) {
-    return (
-      <ThemedView style={pstyles.container}>
-        <ThemedText style={{ fontSize: 24 }}>Loading</ThemedText>
-      </ThemedView>
-    );
-  }
-
-  if (targetResult.isError) {
-    return (
-      <ThemedView style={pstyles.container}>
-        <ThemedText style={{ fontSize: 24 }}>Error</ThemedText>
-      </ThemedView>
-    );
-  }
-
   return (
-    <ThemedView style={pstyles.container}>
-      <HGroup title="Targets" />
-      {params.success ? (
-        <Alert type="success" message={params.success as string} />
-      ) : null}
+    <Screen>
+      <ScreenState query={targetResult}>
+        <HGroup title="Targets" />
+        {params.success ? (
+          <Alert type="success" message={params.success as string} />
+        ) : null}
 
-      <FloatingButton>
-        <Link href="/target/create" asChild push>
-          <TouchableOpacity style={floatingButtonStyle.button}>
-            <IconSymbol
-              name="plus"
-              color={PicoThemeVariables.primaryColor}
-              size={30}
-            />
-          </TouchableOpacity>
-        </Link>
-      </FloatingButton>
+        <FloatingButton href="/target/create" />
 
-      <FlatList
-        data={targetResult.data.pages.flatMap((page) => page.data) || []}
-        onEndReached={() => {
-          if (targetResult.hasNextPage && !targetResult.isFetching) {
-            targetResult.fetchNextPage();
-          }
-        }}
-        renderItem={({ item }) => {
-          return <TargetListItem key={item.id} target={item} />;
-        }}
-        ListFooterComponent={() => {
-          if (targetResult.isFetchingNextPage) {
-            return <ThemedText>Loading...</ThemedText>;
-          }
-          return null;
-        }}
-        ListEmptyComponent={() => (
-          <ThemedView style={styles.emptyContainer}>
-            <ThemedText type="muted">
-              No targets yet. Create one to get started!
-            </ThemedText>
-          </ThemedView>
+        {targetResult.status === "success" && (
+          <FlatList
+            data={targetResult.data.pages.flatMap((page) => page.data) || []}
+            onEndReached={() => {
+              if (targetResult.hasNextPage && !targetResult.isFetching) {
+                targetResult.fetchNextPage();
+              }
+            }}
+            renderItem={({ item }) => {
+              return <TargetListItem key={item.id} target={item} />;
+            }}
+            ListFooterComponent={() => (
+              <ListFooterLoader loading={targetResult.isFetchingNextPage} />
+            )}
+            ListEmptyComponent={() => (
+              <EmptyState message="No targets yet. Create one to get started!" />
+            )}
+          />
         )}
-      />
-    </ThemedView>
+      </ScreenState>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  statusBadge: {
-    backgroundColor: PicoThemeVariables.secondaryBackground,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  statusCompleted: {
-    backgroundColor: PicoThemeVariables.primaryBackground,
-  },
-  statusText: {
-    fontSize: 12,
-    color: "#fff",
-  },
-  targetInfo: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  progressContainer: {
-    marginTop: 8,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: PicoThemeVariables.formElementBorder,
-    borderRadius: 4,
-    overflow: "hidden",
-    marginTop: 8,
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: PicoThemeVariables.primaryBackground,
-    borderRadius: 4,
-  },
-  progressCompleted: {
-    backgroundColor: PicoThemeVariables.primaryColor,
-  },
-  progressText: {
-    textAlign: "right",
-    fontSize: 14,
-  },
-  emptyContainer: {
-    padding: 32,
-    alignItems: "center",
-  },
-});

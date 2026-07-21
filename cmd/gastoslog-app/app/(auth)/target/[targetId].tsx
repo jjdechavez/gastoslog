@@ -1,4 +1,4 @@
-import { Link, router, useLocalSearchParams } from "expo-router";
+import { Link, useLocalSearchParams } from "expo-router";
 import {
   FlatList,
   Pressable,
@@ -7,30 +7,33 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Svg, { Circle } from "react-native-svg";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useTarget, useTargetLogs } from "@/services/api-hook/target";
-import { fromCentToRegularPrice, toFormattedDate } from "@/services/string";
-import {
-  PicoThemeVariables,
-  PicoLimeStyles as pstyles,
-} from "@/styles/pico-lime";
+import { toFormattedDate } from "@/services/string";
+import { PicoThemeVariables } from "@/styles/pico-lime";
 import { TargetLog } from "@/types/target";
 import { Card, CardBody } from "@/components/Card";
 import { Button } from "@/components/Button";
+import { Screen } from "@/components/Screen";
+import { Row } from "@/components/Row";
+import { IconCircle } from "@/components/IconCircle";
+import { ListRow } from "@/components/ListRow";
+import { Amount } from "@/components/Amount";
+import { ProgressRing } from "@/components/ProgressRing";
+import { EmptyState, ListFooterLoader, LoadingState, ErrorState } from "@/components/ScreenState";
 
 function TargetDetailHeader({ targetId }: { targetId: string }) {
   const targetQuery = useTarget(targetId);
   const logsQuery = useTargetLogs(targetId);
 
   if (targetQuery.isPending) {
-    return <ThemedText>Loading target...</ThemedText>;
+    return <LoadingState message="Loading target..." />;
   }
 
   if (targetQuery.isError) {
-    return <ThemedText>Error loading target</ThemedText>;
+    return <ErrorState message="Error loading target" />;
   }
 
   const target = targetQuery.data.data;
@@ -40,59 +43,29 @@ function TargetDetailHeader({ targetId }: { targetId: string }) {
   const targetAmount = target.targetAmount / 100;
   const progress =
     targetAmount > 0 ? Math.min((currentAmount / targetAmount) * 100, 100) : 0;
-  const ringSize = 176;
-  const ringStroke = 12;
-  const ringRadius = (ringSize - ringStroke) / 2;
-  const ringCircumference = 2 * Math.PI * ringRadius;
-  const ringProgressOffset =
-    ringCircumference - (progress / 100) * ringCircumference;
 
   return (
     <ThemedView>
-      <View style={styles.headerRow}>
+      <Row>
         <ThemedText type="defaultSemiBold" style={styles.headerTitle}>
           {target.name}
         </ThemedText>
-      </View>
+      </Row>
 
       <View style={styles.progressRingWrapper}>
-        <Svg width={ringSize} height={ringSize} style={styles.ringSvg}>
-          <Circle
-            cx={ringSize / 2}
-            cy={ringSize / 2}
-            r={ringRadius}
-            stroke={PicoThemeVariables.formElementBorder}
-            strokeWidth={ringStroke}
-            fill="none"
-          />
-          <Circle
-            cx={ringSize / 2}
-            cy={ringSize / 2}
-            r={ringRadius}
-            stroke={PicoThemeVariables.primaryColor}
-            strokeWidth={ringStroke}
-            fill="none"
-            strokeDasharray={`${ringCircumference} ${ringCircumference}`}
-            strokeDashoffset={ringProgressOffset}
-            strokeLinecap="round"
-          />
-        </Svg>
-
-        <ThemedView style={styles.ringCenter}>
-          <ThemedText type="muted" style={styles.progressLabel}>
+        <ProgressRing value={progress}>
+          <ThemedText type="caption" style={{ letterSpacing: 0.6 }}>
             PAID
           </ThemedText>
           <ThemedText style={styles.progressValue} type="defaultSemiBold">
             {progress.toFixed(0)}%
           </ThemedText>
-          <ThemedText type="muted" style={styles.progressAmount}>
-            {fromCentToRegularPrice(currentAmount, { type: "withDecimal" })}
+          <ThemedText type="caption">
+            <Amount cents={currentAmount} type="caption" />
             {" / "}
-            {fromCentToRegularPrice(target.targetAmount, {
-              type: "withDecimal",
-            })}
+            <Amount cents={target.targetAmount} type="caption" />
           </ThemedText>
-        </ThemedView>
+        </ProgressRing>
       </View>
     </ThemedView>
   );
@@ -102,18 +75,12 @@ function TargetLogItem({ log }: { log: TargetLog }) {
   return (
     <Pressable>
       <Card>
-        <CardBody style={{ flexDirection: "row", alignItems: "center" }}>
-          <View style={styles.logLeft}>
-            <ThemedText type="muted" style={styles.logDate}>
-              {toFormattedDate(log.entryDate.toString())}
-            </ThemedText>
-            <ThemedText type="defaultSemiBold" numberOfLines={1}>
-              {log.notes || "Target Payment"}
-            </ThemedText>
-          </View>
-          <ThemedText style={styles.logAmount}>
-            +{fromCentToRegularPrice(log.amount, { type: "withDecimal" })}
-          </ThemedText>
+        <CardBody>
+          <ListRow
+            title={log.notes || "Target Payment"}
+            subtitle={toFormattedDate(log.entryDate.toString())}
+            right={<Amount cents={log.amount} sign="+" tone="primary" style={{ fontWeight: "600" }} />}
+          />
         </CardBody>
       </Card>
     </Pressable>
@@ -127,7 +94,7 @@ export default function TargetDetailScreen() {
   const logsQuery = useTargetLogs(targetId);
 
   return (
-    <ThemedView style={pstyles.container}>
+    <Screen>
       <View style={styles.contentWrapper}>
         <FlatList
           data={logsQuery.data?.pages.flatMap((page) => page.data) || []}
@@ -135,14 +102,14 @@ export default function TargetDetailScreen() {
           ListHeaderComponent={
             <View>
               <TargetDetailHeader targetId={targetId} />
-              <View style={styles.historyHeader}>
+              <Row style={{ marginBottom: 8 }}>
                 <ThemedText type="defaultSemiBold">History</ThemedText>
                 <TouchableOpacity>
                   <ThemedText type="defaultSemiBold" style={styles.filterText}>
                     Filter
                   </ThemedText>
                 </TouchableOpacity>
-              </View>
+              </Row>
             </View>
           }
           onEndReached={() => {
@@ -151,43 +118,40 @@ export default function TargetDetailScreen() {
             }
           }}
           renderItem={({ item }) => <TargetLogItem log={item} />}
-          ListFooterComponent={() => {
-            if (logsQuery.isFetchingNextPage) {
-              return <ThemedText>Loading...</ThemedText>;
-            }
-            return null;
-          }}
+          ListFooterComponent={() => (
+            <ListFooterLoader loading={logsQuery.isFetchingNextPage} />
+          )}
           ListEmptyComponent={() => (
-            <ThemedView style={styles.emptyContainer}>
-              <ThemedText type="muted">
-                No progress logs yet. Add one to track your progress!
-              </ThemedText>
-            </ThemedView>
+            <EmptyState message="No progress logs yet. Add one to track your progress!" />
           )}
           contentContainerStyle={styles.listContent}
         />
 
         <Card>
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleLabelWrap}>
-              <View style={styles.toggleIcon}>
+          <Row style={{ marginBottom: 16 }}>
+            <Row justify="flex-start" style={{ flex: 1, marginRight: 12 }}>
+              <IconCircle
+                size={32}
+                backgroundColor={PicoThemeVariables.primaryHoverBackground}
+                style={{ marginRight: 12 }}
+              >
                 <IconSymbol
                   name="creditcard"
                   size={16}
                   color={PicoThemeVariables.primaryColor}
                 />
-              </View>
+              </IconCircle>
               <View>
                 <ThemedText type="defaultSemiBold">
                   Also log as expense
                 </ThemedText>
-                <ThemedText type="muted" style={styles.toggleCaption}>
+                <ThemedText type="caption">
                   Sync payment with your main Gastoslog
                 </ThemedText>
               </View>
-            </View>
+            </Row>
             <Switch value={true} onValueChange={() => {}} />
-          </View>
+          </Row>
           <Link href={`/target/${targetId}/log`} asChild push>
             <Button style={styles.primaryButton}>
               <IconSymbol
@@ -202,37 +166,16 @@ export default function TargetDetailScreen() {
           </Link>
         </Card>
       </View>
-    </ThemedView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  detailCard: {
-    backgroundColor: PicoThemeVariables.cardBackground,
-    borderRadius: PicoThemeVariables.borderRadius,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: PicoThemeVariables.borderWidth,
-    borderColor: PicoThemeVariables.cardBorder,
-  },
   contentWrapper: {
     flex: 1,
   },
   listContent: {
     paddingBottom: 24,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: PicoThemeVariables.secondaryBackground,
   },
   headerTitle: {
     fontSize: 16,
@@ -244,80 +187,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  ringSvg: {
-    transform: [{ rotateZ: "-90deg" }],
-  },
-  ringCenter: {
-    position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  progressLabel: {
-    fontSize: 12,
-    letterSpacing: 0.6,
-  },
   progressValue: {
     fontSize: 28,
   },
-  progressAmount: {
-    fontSize: 12,
-  },
-  historyHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
   filterText: {
     color: PicoThemeVariables.primaryColor,
-  },
-  logLeft: {
-    flex: 1,
-    marginRight: 12,
-  },
-  logDate: {
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  logAmount: {
-    color: PicoThemeVariables.primaryColor,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  footerCard: {
-    backgroundColor: PicoThemeVariables.cardBackground,
-    borderRadius: PicoThemeVariables.borderRadius,
-    padding: 16,
-    borderWidth: PicoThemeVariables.borderWidth,
-    borderColor: PicoThemeVariables.cardBorder,
-    marginTop: 12,
-  },
-  toggleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  toggleLabelWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    marginRight: 12,
-  },
-  toggleIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 32,
-    backgroundColor: PicoThemeVariables.primaryHoverBackground,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  toggleCaption: {
-    fontSize: 12,
   },
   primaryButton: {
     backgroundColor: PicoThemeVariables.primaryColor,
@@ -332,9 +206,5 @@ const styles = StyleSheet.create({
     color: PicoThemeVariables.backgroundColor,
     fontSize: 16,
     fontWeight: "700",
-  },
-  emptyContainer: {
-    padding: 32,
-    alignItems: "center",
   },
 });

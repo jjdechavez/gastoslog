@@ -1,21 +1,14 @@
-import { FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import { FlatList, StyleSheet } from "react-native";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { Separator } from "@/components/Separator";
-import {
-  PicoThemeVariables,
-  PicoLimeStyles as pstyles,
-} from "@/styles/pico-lime";
-import { IconSymbol } from "@/components/ui/IconSymbol";
+import { Screen } from "@/components/Screen";
 import { Alert } from "@/components/Alert";
-import {
-  FloatingButton,
-  styles as floatingButtonStyle,
-} from "@/components/FloatingButton";
+import { FloatingButton } from "@/components/FloatingButton";
+import { ScreenState, ListFooterLoader } from "@/components/ScreenState";
 import { categoryKeys } from "@/services/api-hook/category";
 import { api } from "@/services/api";
 
@@ -26,7 +19,7 @@ export default function CategoryScreen() {
     s: params.s as string,
   };
 
-  const { data, status, isFetchingNextPage } = useInfiniteQuery({
+  const queryResult = useInfiniteQuery({
     queryKey: categoryKeys.list(query),
     queryFn: ({ pageParam }) =>
       api().category.list({ ...query, page: pageParam as number }),
@@ -39,6 +32,7 @@ export default function CategoryScreen() {
     getPreviousPageParam: (firstPage) => firstPage.meta.page - 1,
     initialPageParam: 1,
   });
+  const { data, status, isFetchingNextPage } = queryResult;
 
   const handleSearch = (value: string) => {
     const prevSearch = (params?.s as string) || "";
@@ -49,59 +43,34 @@ export default function CategoryScreen() {
     }
   };
 
-  if (status === "pending") {
-    return (
-      <ThemedView style={pstyles.container}>
-        <ThemedText style={{ fontSize: 24 }}>Loading</ThemedText>
-      </ThemedView>
-    );
-  }
-
-  if (status === "error") {
-    return (
-      <ThemedView style={pstyles.container}>
-        <ThemedText style={{ fontSize: 24 }}>Error</ThemedText>
-      </ThemedView>
-    );
-  }
-
   return (
-    <ThemedView style={pstyles.container}>
-      {params.success ? (
-        <Alert type="success" message={params.success as string} />
-      ) : null}
+    <Screen>
+      <ScreenState query={queryResult}>
+        {params.success ? (
+          <Alert type="success" message={params.success as string} />
+        ) : null}
 
-      <SearchBar value={params.s as string} onSearch={handleSearch} />
+        <SearchBar value={params.s as string} onSearch={handleSearch} />
 
-      <Separator />
+        <Separator />
 
-      <FloatingButton>
-        <Link href="/(auth)/category/create" asChild push>
-          <TouchableOpacity style={floatingButtonStyle.button}>
-            <IconSymbol
-              name="plus"
-              color={PicoThemeVariables.primaryColor}
-              size={30}
-            />
-          </TouchableOpacity>
-        </Link>
-      </FloatingButton>
+        <FloatingButton href="/(auth)/category/create" />
 
-      <FlatList
-        data={data.pages.flatMap((page) => page.data) || []}
-        renderItem={({ item }) => (
-          <Link href={`/(auth)/category/${item.id}/edit`} asChild push>
-            <ThemedText style={styles.item}>{item.name}</ThemedText>
-          </Link>
+        {status === "success" && (
+          <FlatList
+            data={data.pages.flatMap((page) => page.data) || []}
+            renderItem={({ item }) => (
+              <Link href={`/(auth)/category/${item.id}/edit`} asChild push>
+                <ThemedText style={styles.item}>{item.name}</ThemedText>
+              </Link>
+            )}
+            ListFooterComponent={() => (
+              <ListFooterLoader loading={isFetchingNextPage} />
+            )}
+          />
         )}
-        ListFooterComponent={() => {
-          if (isFetchingNextPage) {
-            return <ThemedText>Loading...</ThemedText>;
-          }
-          return null;
-        }}
-      />
-    </ThemedView>
+      </ScreenState>
+    </Screen>
   );
 }
 

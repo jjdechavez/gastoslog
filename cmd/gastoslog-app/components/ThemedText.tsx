@@ -6,7 +6,16 @@ import { PicoThemeVariables } from "@/styles/pico-lime";
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
-  type?: "default" | "title" | "defaultSemiBold" | "subtitle" | "link" | "muted";
+  type?:
+    | "default"
+    | "title"
+    | "defaultSemiBold"
+    | "subtitle"
+    | "link"
+    | "muted"
+    | "caption"
+    | "small"
+    | "label";
 };
 
 export function ThemedText({
@@ -30,6 +39,9 @@ export function ThemedText({
         type === "subtitle" ? styles.subtitle : undefined,
         type === "link" ? styles.link : undefined,
         type === "muted" ? { color: textMuted } : undefined,
+        type === "caption" ? [styles.caption, { color: textMuted }] : undefined,
+        type === "small" ? styles.small : undefined,
+        type === "label" ? styles.label : undefined,
         style,
       ]}
       {...rest}
@@ -64,5 +76,15 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     fontSize: 16,
     color: "#0a7ea4",
+  },
+  caption: {
+    fontSize: 12,
+  },
+  small: {
+    fontSize: 14,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

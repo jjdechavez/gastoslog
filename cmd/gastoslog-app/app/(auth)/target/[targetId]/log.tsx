@@ -1,10 +1,9 @@
 import { Button, ButtonText } from "@/components/Button";
 import { Fieldset, Label } from "@/components/Fieldset";
 import { HGroup } from "@/components/HGroup";
-import { Input, InputError } from "@/components/Input";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import { FormField } from "@/components/FormField";
 import { DatePicker } from "@/components/DatePicker";
+import { Screen } from "@/components/Screen";
 import { useCreateTargetLog } from "@/services/api-hook/target";
 import {
   TargetLogInputSchema,
@@ -13,7 +12,6 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
-import { PicoLimeStyles } from "@/styles/pico-lime";
 
 export function TargetLogForm({
   targetId,
@@ -22,7 +20,7 @@ export function TargetLogForm({
   targetId: string;
   onSubmit: (input: TargetLogInput) => void;
 }) {
-  const { control, formState, handleSubmit } = useForm({
+  const { control, handleSubmit } = useForm({
     defaultValues: {
       amount: undefined as number | undefined,
       notes: "",
@@ -41,73 +39,46 @@ export function TargetLogForm({
   });
 
   return (
-    <ThemedView style={PicoLimeStyles.container}>
+    <Screen scroll keyboardAvoiding>
       <HGroup title="Add Progress" />
 
-      <Controller
+      <FormField
+        control={control}
         name="amount"
-        control={control}
-        render={({ field: { onChange, onBlur, value }, formState }) => {
-          return (
-            <Fieldset>
-              <Label name="Amount" required />
-              <Input
-                placeholder="Amount"
-                inputMode="decimal"
-                onChangeText={onChange}
-                onBlur={onBlur}
-                value={value ? value.toString() : ""}
-                hasError={!!formState.errors.amount}
-                isLoading={formState.isSubmitting}
-              />
-            </Fieldset>
-          );
-        }}
+        label="Amount"
+        required
+        variant="amount"
+        placeholder="Amount"
       />
-      <InputError name="amount" errors={formState.errors} />
 
-      <Controller
-        name="notes"
+      <FormField
         control={control}
-        render={({ field: { onChange, onBlur, value }, formState }) => {
-          return (
-            <Fieldset>
-              <Label name="Notes (Optional)" />
-              <Input
-                placeholder="e.g., Monthly savings"
-                onChangeText={onChange}
-                onBlur={onBlur}
-                value={value}
-                isLoading={formState.isSubmitting}
-                multiline
-              />
-            </Fieldset>
-          );
-        }}
+        name="notes"
+        label="Notes (Optional)"
+        placeholder="e.g., Monthly savings"
+        multiline
       />
 
       <Controller
         name="entryDate"
         control={control}
-        render={({ field: { onChange, value }, formState }) => {
-          return (
-            <Fieldset>
-              <Label name="Entry Date" required />
-              <DatePicker
-                value={value}
-                onChange={(date) => onChange(date)}
-                placeholder="Select date"
-                maximumDate={new Date()}
-              />
-            </Fieldset>
-          );
-        }}
+        render={({ field: { onChange, value } }) => (
+          <Fieldset>
+            <Label name="Entry Date" required />
+            <DatePicker
+              value={value}
+              onChange={(date) => onChange(date)}
+              placeholder="Select date"
+              maximumDate={new Date()}
+            />
+          </Fieldset>
+        )}
       />
 
       <Button onPressIn={onFormSubmit}>
         <ButtonText>Add Progress</ButtonText>
       </Button>
-    </ThemedView>
+    </Screen>
   );
 }
 

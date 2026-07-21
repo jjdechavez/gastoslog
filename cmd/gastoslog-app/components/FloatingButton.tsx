@@ -1,13 +1,29 @@
+import type { ComponentProps } from "react";
 import { PicoThemeVariables } from "@/styles/pico-lime";
+import { Link, type Href } from "expo-router";
 import {
   View,
   StyleSheet,
   TouchableOpacity,
-  type TouchableOpacityProps,
   type ViewProps,
 } from "react-native";
 
+import { IconSymbol } from "./ui/IconSymbol";
+
+type IconName = ComponentProps<typeof IconSymbol>["name"];
+
+export type FloatingButtonProps = ViewProps & {
+  href?: Href;
+  onPress?: () => void;
+  icon?: IconName;
+  iconColor?: string;
+  iconSize?: number;
+};
+
 /**
+ * @example
+ * <FloatingButton href="/(auth)/(tabs)/category/create" icon="plus" />
+ *
  * @example
  * <FloatingButton>
  *  <Link href="/(auth)/(tabs)/category/create" asChild push>
@@ -22,10 +38,36 @@ import {
  * </FloatingButton>
  *
  **/
-export function FloatingButton({ children, ...props }: ViewProps) {
+export function FloatingButton({
+  children,
+  href,
+  onPress,
+  icon = "plus",
+  iconColor = PicoThemeVariables.primaryColor,
+  iconSize = 30,
+  ...props
+}: FloatingButtonProps) {
+  let content = children;
+
+  if (!content && href) {
+    content = (
+      <Link href={href} asChild push>
+        <TouchableOpacity style={styles.button}>
+          <IconSymbol name={icon} color={iconColor} size={iconSize} />
+        </TouchableOpacity>
+      </Link>
+    );
+  } else if (!content && onPress) {
+    content = (
+      <TouchableOpacity style={styles.button} onPress={onPress}>
+        <IconSymbol name={icon} color={iconColor} size={iconSize} />
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <View style={styles.container} {...props}>
-      {children}
+      {content}
     </View>
   );
 }

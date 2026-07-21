@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { ThemedText } from "@/components/ThemedText";
+import { LoadingState } from "@/components/ScreenState";
 import { useCategories } from "@/services/api-hook/category";
 import {
   expenseKeys,
@@ -49,5 +49,5 @@ export default function EditExpenseScreen() {
     );
   }
 
-  return <ThemedText>Loading</ThemedText>;
+  return <LoadingState />;
 }

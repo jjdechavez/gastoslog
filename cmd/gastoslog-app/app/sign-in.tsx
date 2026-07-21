@@ -2,11 +2,11 @@ import { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Link, router } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
 import { useSession } from "@/context/session";
 import { HGroup } from "@/components/HGroup";
 import { Input } from "@/components/Input";
 import { Button, ButtonText } from "@/components/Button";
+import { Screen } from "@/components/Screen";
 import { PicoThemeVariables } from "@/styles/pico-lime";
 import { Fieldset } from "@/components/Fieldset";
 import { Alert } from "@/components/Alert";
@@ -32,7 +32,7 @@ export default function SignInScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <Screen keyboardAvoiding contentContainerStyle={styles.container}>
       <HGroup
         title="Gastoslog"
         subtitle="Sign In with your account"
@@ -72,14 +72,12 @@ export default function SignInScreen() {
           </TouchableOpacity>
         </Link>
       </View>
-    </ThemedView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 20,
     justifyContent: "center",
   },
   hgroup: {

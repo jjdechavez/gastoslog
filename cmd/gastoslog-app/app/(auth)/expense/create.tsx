@@ -1,15 +1,15 @@
 import { Button, ButtonText } from "@/components/Button";
 import { Fieldset, Label } from "@/components/Fieldset";
 import { HGroup } from "@/components/HGroup";
-import { Input, InputError } from "@/components/Input";
+import { FormField } from "@/components/FormField";
+import { InputError } from "@/components/Input";
 import { SelectItem } from "@/components/Select";
 import { SelectCategory } from "@/components/SelectCategory";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import { LoadingState } from "@/components/ScreenState";
+import { Screen } from "@/components/Screen";
 import { useCategories } from "@/services/api-hook/category";
 import { useCreateExpense } from "@/services/api-hook/expense";
 import { fromCentToRegularPrice } from "@/services/string";
-import { PicoLimeStyles } from "@/styles/pico-lime";
 import type { Category } from "@/types/category";
 import {
   ExpenseInputSchema,
@@ -64,78 +64,50 @@ export function ExpenseForm(props: ExpenseFormProps) {
   });
 
   return (
-    <ThemedView style={PicoLimeStyles.container}>
+    <Screen scroll keyboardAvoiding>
       <HGroup title={title} />
 
-      <Controller
-        name="amount"
+      <FormField
         control={control}
-        render={({ field: { onChange, onBlur, value }, formState }) => {
-          return (
-            <Fieldset>
-              <Label name="Amount" required />
-              <Input
-                placeholder="Amount"
-                inputMode="decimal"
-                onChangeText={onChange}
-                onBlur={onBlur}
-                value={value ? value.toString() : ""}
-                hasError={!!formState.errors.amount}
-                isLoading={formState.isSubmitting}
-              />
-            </Fieldset>
-          );
-        }}
+        name="amount"
+        label="Amount"
+        required
+        variant="amount"
+        placeholder="Amount"
       />
-      <InputError name="amount" errors={formState.errors} />
 
       <Controller
         name="categoryId"
         control={control}
-        render={({ field: { onChange, value }, formState }) => {
-          return (
-            <Fieldset>
-              <Label name="Category" required />
-              <SelectCategory
-                value={value ?? null}
-                onChange={(item) =>
-                  onChange((item as SelectItem)?.value ?? null)
-                }
-                isLoading={formState.isSubmitting}
-              />
-            </Fieldset>
-          );
-        }}
+        render={({ field: { onChange, value }, formState }) => (
+          <Fieldset>
+            <Label name="Category" required />
+            <SelectCategory
+              value={value ?? null}
+              onChange={(item) =>
+                onChange((item as SelectItem)?.value ?? null)
+              }
+              isLoading={formState.isSubmitting}
+            />
+          </Fieldset>
+        )}
       />
       <InputError name="categoryId" errors={formState.errors} />
 
-      <Controller
+      <FormField
         control={control}
         name="description"
-        render={({ field: { onChange, onBlur, value } }) => {
-          return (
-            <Fieldset>
-              <Label name="Description" />
-              <Input
-                placeholder="Description"
-                autoCapitalize="none"
-                onChangeText={onChange}
-                onBlur={onBlur}
-                value={value ?? ""}
-                isLoading={formState.isSubmitting}
-              />
-            </Fieldset>
-          );
-        }}
+        label="Description"
+        placeholder="Description"
+        autoCapitalize="none"
       />
-      <InputError name="description" errors={formState.errors} />
 
       <Button onPressIn={onSubmit}>
         <ButtonText>
           {props.action === "create" ? "Create" : "Update"} expense
         </ButtonText>
       </Button>
-    </ThemedView>
+    </Screen>
   );
 }
 
@@ -168,5 +140,5 @@ export default function CreateExpenseScreen() {
     );
   }
 
-  return <ThemedText>Loading</ThemedText>;
+  return <LoadingState />;
 }
