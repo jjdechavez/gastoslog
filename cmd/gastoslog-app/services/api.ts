@@ -185,15 +185,14 @@ export const api = (version = V1) => {
       },
     },
     target: {
-      list: async (query?: Partial<ListMeta> & { status?: string; direction?: string }) => {
+      list: async (
+        query?: Partial<ListMeta> & { status?: string; direction?: string },
+      ) => {
         const searchParams = getSearchParams(query || {});
-        return await request<ListTarget>(
-          `${version}/targets${searchParams}`,
-          {
-            method: "GET",
-            credentials: "include",
-          },
-        );
+        return await request<ListTarget>(`${version}/targets${searchParams}`, {
+          method: "GET",
+          credentials: "include",
+        });
       },
       create: async (input: TargetInput) => {
         return await request<{ data: Target }>(`${version}/targets`, {
@@ -220,7 +219,7 @@ export const api = (version = V1) => {
         return await request<{ data: Target }>(
           `${version}/targets/${targetId}`,
           {
-            method: "POST",
+            method: "PUT",
             body: {
               name: input.name,
               targetAmount: input.targetAmount,
@@ -269,11 +268,18 @@ export const api = (version = V1) => {
             },
           );
         },
-        update: async (targetId: string, logId: string, input: TargetLogInput) => {
+        update: async (
+          targetId: string,
+          logId: string,
+          input: TargetLogInput,
+        ) => {
           return await request<{ data: TargetLog }>(
             `${version}/targets/${targetId}/logs/${logId}`,
             {
-              method: "POST",
+              // Backend registers this route as PUT (routes.go
+              // UpdateTargetLog); sending POST hits no route and editing a
+              // log fails.
+              method: "PUT",
               body: {
                 amount: input.amount,
                 notes: input.notes,

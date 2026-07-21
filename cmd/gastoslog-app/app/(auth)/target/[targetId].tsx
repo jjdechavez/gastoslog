@@ -15,13 +15,14 @@ import { toFormattedDate } from "@/services/string";
 import { PicoThemeVariables } from "@/styles/pico-lime";
 import { TargetLog } from "@/types/target";
 import { Card, CardBody } from "@/components/Card";
-import { Button } from "@/components/Button";
+import { Button, ButtonText } from "@/components/Button";
 import { Screen } from "@/components/Screen";
 import { Row } from "@/components/Row";
 import { IconCircle } from "@/components/IconCircle";
 import { ListRow } from "@/components/ListRow";
 import { Amount } from "@/components/Amount";
 import { ProgressRing } from "@/components/ProgressRing";
+import { PendingTag } from "@/components/PendingTag";
 import { EmptyState, ListFooterLoader, LoadingState, ErrorState } from "@/components/ScreenState";
 
 function TargetDetailHeader({ targetId }: { targetId: string }) {
@@ -78,11 +79,19 @@ function TargetDetailHeader({ targetId }: { targetId: string }) {
 
 function TargetLogItem({ log, targetId }: { log: TargetLog; targetId: string }) {
   const router = useRouter();
+  // A log added while offline is rendered with a negative temp id (see
+  // services/offline/mutation-defaults.ts) until the create mutation
+  // resolves and the logs list is invalidated/refetched with the real
+  // server id. Guard the same way ExpenseItem/CategoryItem do — there's no
+  // server record yet, so don't navigate to the edit screen for it.
+  const isOptimistic = log.id < 0;
 
   return (
     <Pressable
-      onPress={() =>
-        router.push(`/(auth)/target/${targetId}/log/${log.id}/edit`)
+      onPress={
+        isOptimistic
+          ? undefined
+          : () => router.push(`/(auth)/target/${targetId}/log/${log.id}/edit`)
       }
     >
       <Card>
@@ -90,7 +99,16 @@ function TargetLogItem({ log, targetId }: { log: TargetLog; targetId: string }) 
           <ListRow
             title={log.notes || "Target Payment"}
             subtitle={toFormattedDate(log.entryDate.toString())}
-            right={<Amount cents={log.amount} sign="+" tone="primary" style={{ fontWeight: "600" }} />}
+            right={
+              isOptimistic ? (
+                <View style={styles.pendingRight}>
+                  <Amount cents={log.amount} sign="+" tone="muted" />
+                  <PendingTag />
+                </View>
+              ) : (
+                <Amount cents={log.amount} sign="+" tone="primary" style={{ fontWeight: "600" }} />
+              )
+            }
           />
         </CardBody>
       </Card>
@@ -99,14 +117,36 @@ function TargetLogItem({ log, targetId }: { log: TargetLog; targetId: string }) 
 }
 
 export default function TargetDetailScreen() {
+  const router = useRouter();
   const params = useLocalSearchParams();
   const targetId = params.targetId as string;
 
-  const targetQuery = useTarget(targetId);
-  const logsQuery = useTargetLogs(targetId);
+  // A target created while offline is rendered with a negative temp id
+  // (see services/offline/mutation-defaults.ts) until the create mutation
+  // resolves and the target list is invalidated/refetched with the real
+  // server id. There's nothing to fetch yet for a temp id — /targets/-123
+  // and /targets/-123/logs don't exist on the server — so skip both queries
+  // and show an explanatory empty state instead. This also naturally blocks
+  // reaching the add-progress screen (log.tsx) for an unsynced target, since
+  // that's only linked from here.
+  const isTempTarget = Number(targetId) < 0;
+
+  const targetQuery = useTarget(targetId, { enabled: !isTempTarget });
+  const logsQuery = useTargetLogs(targetId, { enabled: !isTempTarget });
 
   const status = targetQuery.data?.data.status;
   const canLogPayment = status !== "completed" && status !== "cancelled";
+
+  if (isTempTarget) {
+    return (
+      <Screen>
+        <EmptyState message="This target hasn't finished syncing yet. Check back once it's online." />
+        <Button onPressIn={() => router.back()}>
+          <ButtonText>Go back</ButtonText>
+        </Button>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -236,5 +276,9 @@ const styles = StyleSheet.create({
     color: PicoThemeVariables.backgroundColor,
     fontSize: 16,
     fontWeight: "700",
+  },
+  pendingRight: {
+    alignItems: "flex-end",
+    gap: 4,
   },
 });

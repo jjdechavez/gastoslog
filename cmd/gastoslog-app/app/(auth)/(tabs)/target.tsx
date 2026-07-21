@@ -9,12 +9,15 @@ import { Row } from "@/components/Row";
 import { Badge } from "@/components/Badge";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Amount } from "@/components/Amount";
+import { PendingSyncBadge } from "@/components/PendingSyncBadge";
+import { PendingTag } from "@/components/PendingTag";
 import {
   ScreenState,
   EmptyState,
   ListFooterLoader,
 } from "@/components/ScreenState";
 import { useTargetLogs, useTargets } from "@/services/api-hook/target";
+import { TARGET_CREATE_MUTATION_KEY } from "@/services/offline/mutation-keys";
 import { toFormattedDate } from "@/services/string";
 import { Target } from "@/types/target";
 import { HGroup } from "@/components/HGroup";
@@ -26,9 +29,11 @@ type TargetWithProgress = Target & {
 
 function TargetItem({
   target,
+  isOptimistic,
   onPress,
 }: {
   target: TargetWithProgress;
+  isOptimistic?: boolean;
   onPress: () => void;
 }) {
   const currentAmount = target.currentAmount;
@@ -38,14 +43,17 @@ function TargetItem({
   const isCompleted = currentAmount >= targetAmount;
 
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={isOptimistic ? undefined : onPress}>
       <Card>
         <CardHeader>
           <Row>
             <ThemedText type="defaultSemiBold">{target.name}</ThemedText>
-            <Badge variant={isCompleted ? "success" : "default"}>
-              {target.status}
-            </Badge>
+            <Row justify="flex-end" gap={6}>
+              {isOptimistic ? <PendingTag /> : null}
+              <Badge variant={isCompleted ? "success" : "default"}>
+                {target.status}
+              </Badge>
+            </Row>
           </Row>
 
           <Row style={{ marginBottom: 12 }}>
@@ -65,7 +73,7 @@ function TargetItem({
             <ThemedText type="muted">Progress</ThemedText>
             <Row justify="flex-end" gap={0}>
               <Amount
-                cents={currentAmount * 100}
+                cents={currentAmount}
                 style={{ textAlign: "right", fontSize: 14 }}
               />
               <ThemedText type="muted">
@@ -83,12 +91,21 @@ function TargetItem({
 
 function TargetListItem({ target }: { target: Target }) {
   const router = useRouter();
-  const logsResult = useTargetLogs(target.id.toString());
+  // Optimistic rows use a negative temp id (see
+  // services/offline/mutation-defaults.ts) and don't exist on the server
+  // yet, so hitting /targets/-123/logs would 404/error. Skip the per-row
+  // logs fetch entirely for them and fall back to the optimistic
+  // target.paidAmount (already in cents, see the create-target defaults).
+  const isOptimistic = target.id < 0;
+  const logsResult = useTargetLogs(target.id.toString(), {
+    enabled: !isOptimistic,
+  });
 
-  const currentAmount =
-    logsResult.data?.pages
-      .flatMap((page) => page.data)
-      .reduce((sum, log) => sum + log.amount, 0) ?? 0;
+  const currentAmount = isOptimistic
+    ? target.paidAmount / 100
+    : (logsResult.data?.pages
+        .flatMap((page) => page.data)
+        .reduce((sum, log) => sum + log.amount, 0) ?? 0);
 
   const targetWithProgress: TargetWithProgress = {
     ...target,
@@ -98,7 +115,13 @@ function TargetListItem({ target }: { target: Target }) {
   return (
     <TargetItem
       target={targetWithProgress}
-      onPress={() => router.push(`/(auth)/target/${target.id}`)}
+      isOptimistic={isOptimistic}
+      onPress={() => {
+        if (isOptimistic) {
+          return;
+        }
+        router.push(`/(auth)/target/${target.id}`);
+      }}
     />
   );
 }
@@ -116,6 +139,12 @@ export default function TargetScreen() {
         {params.success ? (
           <Alert type="success" message={params.success as string} />
         ) : null}
+
+        <PendingSyncBadge
+          mutationKey={TARGET_CREATE_MUTATION_KEY}
+          nounSingular="target"
+          nounPlural="targets"
+        />
 
         <FloatingButton href="/target/create" />
 

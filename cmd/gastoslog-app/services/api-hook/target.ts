@@ -12,6 +12,10 @@ import {
   queryKeysFactory,
   UseQueryOptionsWrapper,
 } from "@/services/query";
+import {
+  TARGET_CREATE_MUTATION_KEY,
+  TARGET_LOG_CREATE_MUTATION_KEY,
+} from "@/services/offline/mutation-keys";
 import type {
   Target,
   TargetInput,
@@ -50,12 +54,19 @@ export const useTargets = (
 };
 
 export const useCreateTarget = (
-  options?: UseMutationOptions<{ data: Target }, Error, TargetInput>,
+  options?: UseMutationOptions<Target, Error, TargetInput>,
 ) => {
-  const queryClient = useQueryClient();
+  // mutationFn + the optimistic onMutate/onSettled pair come from the
+  // mutationDefaults registered in services/offline/mutation-defaults.ts
+  // (keyed by TARGET_CREATE_MUTATION_KEY) — this is what lets a mutation
+  // paused offline resume correctly after a cold restart, mirroring
+  // useCreateExpense/useCreateCategory. Note the mutationFn there already
+  // unwraps `{ data: Target }` down to `Target`, so this hook (unlike the
+  // untouched useUpdateTarget/useDeleteTarget below, which still call the
+  // API directly) resolves to a bare Target.
   return useMutation({
-    mutationFn: (input: TargetInput) => api().target.create(input),
-    ...buildOptions(queryClient, [targetKeys.lists()], options),
+    mutationKey: TARGET_CREATE_MUTATION_KEY,
+    ...options,
   });
 };
 
@@ -140,20 +151,52 @@ export const useTargetLogs = (
   });
 };
 
+// Variables for the "create target log" mutation. Exported so
+// services/offline/mutation-defaults.ts can type its setMutationDefaults
+// call against the exact same shape without a require cycle (that module
+// already imports targetKeys/targetLogKeys from this one, so the type flows
+// the same direction as the existing runtime dependency).
+//
+// A paused offline mutation resumes after a cold restart with NO closure —
+// react-query persists only the mutationKey + variables, not the component
+// scope that called mutate() — so the mutationFn registered in
+// mutation-defaults.ts cannot rely on a `targetId` captured from this hook's
+// argument. It must come from the variables on every call, hence the
+// wrapper below: useCreateTargetLog(targetId) keeps the ergonomic call site
+// (screens still call `mutation.mutate(input)`), but internally packs
+// targetId into the actual mutation variables.
+export type CreateTargetLogVariables = {
+  targetId: number;
+  input: TargetLogInput;
+};
+
 export const useCreateTargetLog = (
   targetId: string,
-  options?: UseMutationOptions<{ data: TargetLog }, Error, TargetLogInput>,
+  options?: UseMutationOptions<TargetLog, Error, TargetLogInput>,
 ) => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: TargetLogInput) =>
-      api().target.logs.create(targetId, input),
-    ...buildOptions(
-      queryClient,
-      [targetLogKeys.list(targetId), targetLogKeys.lists()],
-      options,
-    ),
+  const mutation = useMutation<TargetLog, Error, CreateTargetLogVariables>({
+    mutationKey: TARGET_LOG_CREATE_MUTATION_KEY,
+    // `options` is typed against the public TargetLogInput variable shape
+    // (so call sites like the log-create screen don't need to know about
+    // the internal { targetId, input } wrapping), but the underlying
+    // useMutation is keyed on CreateTargetLogVariables. Only
+    // onSuccess/onError/onSettled are ever passed in by callers, and none of
+    // them rely on the `variables` callback argument, so this cast is safe
+    // in practice even though the shapes don't structurally overlap.
+    ...(options as unknown as UseMutationOptions<
+      TargetLog,
+      Error,
+      CreateTargetLogVariables
+    >),
   });
+
+  return {
+    ...mutation,
+    mutate: (input: TargetLogInput) =>
+      mutation.mutate({ targetId: Number(targetId), input }),
+    mutateAsync: (input: TargetLogInput) =>
+      mutation.mutateAsync({ targetId: Number(targetId), input }),
+  };
 };
 
 export const useTargetLog = (

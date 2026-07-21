@@ -10,7 +10,9 @@ import { StatCard } from "@/components/StatCard";
 import { Amount } from "@/components/Amount";
 import { ProgressBar } from "@/components/ProgressBar";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ScreenState";
+import { PendingSyncBadge } from "@/components/PendingSyncBadge";
 import { useOverviewExpense } from "@/services/api-hook/expense";
+import { useOnlineStatus } from "@/services/offline/useOnlineStatus";
 import { PicoThemeVariables } from "@/styles/pico-lime";
 import { ExpenseOverviewResponse } from "@/types/expense";
 import { router, useLocalSearchParams } from "expo-router";
@@ -124,11 +126,17 @@ function TotalOverview() {
     period: selectedPeriod,
     date: selectedDate,
   });
+  const isOnline = useOnlineStatus();
 
-  if (status === "pending") {
-    return <LoadingState message="Loading overview..." />;
-  }
-  if (status === "error") {
+  if (status === "pending" || status === "error") {
+    if (!isOnline) {
+      return (
+        <EmptyState message="You're offline — this overview will appear once you've synced." />
+      );
+    }
+    if (status === "pending") {
+      return <LoadingState message="Loading overview..." />;
+    }
     return <ErrorState message="Failed to fetch overview" />;
   }
 
@@ -206,6 +214,7 @@ export default function HomeScreen() {
   return (
     <Screen scroll>
       <HGroup title="Overview" />
+      <PendingSyncBadge />
 
       <OverviewDatePicker />
       <Periods />

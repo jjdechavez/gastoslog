@@ -9,11 +9,12 @@ import { SegmentedControl } from "@/components/SegmentedControl";
 import { Screen } from "@/components/Screen";
 import { useCreateTarget } from "@/services/api-hook/target";
 import { applyServerFieldErrors, getErrorMessage } from "@/services/errors";
+import { useOnlineStatus } from "@/services/offline/useOnlineStatus";
 import { TargetInputSchema, type TargetInput } from "@/types/target";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { Controller, useForm, type UseFormReturn } from "react-hook-form";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { z } from "zod/v4";
 
 const TARGET_TYPES = [
@@ -137,7 +138,20 @@ export function TargetForm({
 
 export default function CreateTargetScreen() {
   const router = useRouter();
+  const isOnline = useOnlineStatus();
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // react-query does not scope a useMutation() hook's onSuccess/onError to
+  // the component's lifetime (see app/(auth)/expense/create.tsx for the full
+  // rationale): the create mutation can be paused offline and resumed long
+  // after the user has navigated away from this screen, so guard against
+  // firing router.push at that point.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const form = useForm<TargetFormValues, any, TargetInput>({
     defaultValues: {
@@ -152,6 +166,9 @@ export default function CreateTargetScreen() {
 
   const mutation = useCreateTarget({
     onSuccess: () => {
+      if (!isMountedRef.current) {
+        return;
+      }
       router.push({
         pathname: "/(auth)/(tabs)/target",
         params: {
@@ -160,6 +177,9 @@ export default function CreateTargetScreen() {
       });
     },
     onError: (error) => {
+      if (!isMountedRef.current) {
+        return;
+      }
       applyServerFieldErrors(error, form);
       setSubmitError(
         getErrorMessage(error, "Unable to create target. Please try again."),
@@ -170,6 +190,23 @@ export default function CreateTargetScreen() {
   const onSubmit = (payload: TargetInput) => {
     setSubmitError(null);
     mutation.mutate(payload);
+
+    if (!isOnline) {
+      // Offline: the mutation pauses (networkMode: "online") and only
+      // resumes once connectivity returns, so the onSuccess above won't fire
+      // now — navigate right away so the user isn't left staring at the form
+      // after tapping "Create". The optimistic row already appeared in the
+      // list via onMutate.
+      router.push({
+        pathname: "/(auth)/(tabs)/target",
+        params: {
+          // Kept short — the persistent "waiting to sync" pill on the target
+          // list (PendingSyncBadge) already communicates the sync status, so
+          // repeating it here would be redundant.
+          success: "Target saved offline",
+        },
+      });
+    }
   };
 
   return (

@@ -43,24 +43,39 @@ function StatusPill({
   return onPress ? <Pressable onPress={onPress}>{content}</Pressable> : content;
 }
 
-// Shows the offline-write outbox status for "create expense":
+type PendingSyncBadgeProps = {
+  // Which offline-write mutation to report on. Defaults to the expense-create
+  // key so the existing usage on the expense tab (`<PendingSyncBadge />`,
+  // no props) keeps behaving exactly as before.
+  mutationKey?: readonly unknown[];
+  // Singular/plural noun for the pending/failed item count, e.g.
+  // "expense"/"expenses" or "category"/"categories".
+  nounSingular?: string;
+  nounPlural?: string;
+};
+
+// Shows the offline-write outbox status for a given create mutation (keyed
+// by `mutationKey`):
 //  • how many writes are queued/in-flight (syncing when online, waiting when
 //    offline), and
 //  • how many permanently failed (retries exhausted), which the user can tap
 //    to dismiss.
 // Renders nothing when there's nothing pending or failed.
-export function PendingSyncBadge() {
+export function PendingSyncBadge({
+  mutationKey = EXPENSE_CREATE_MUTATION_KEY,
+  nounSingular = "expense",
+  nounPlural = "expenses",
+}: PendingSyncBadgeProps) {
   const queryClient = useQueryClient();
-  const pendingCount = useIsMutating({
-    mutationKey: EXPENSE_CREATE_MUTATION_KEY,
-  });
+  const pendingCount = useIsMutating({ mutationKey });
   const isOnline = useOnlineStatus();
 
   // Reactively read the underlying Mutation objects (not just their state)
-  // for any create-expense mutation that exhausted its retries, so they can
-  // be individually removed from the cache when the user taps to dismiss.
+  // for any mutation matching this key that exhausted its retries, so they
+  // can be individually removed from the cache when the user taps to
+  // dismiss.
   const failedMutations = useMutationState({
-    filters: { mutationKey: EXPENSE_CREATE_MUTATION_KEY, status: "error" },
+    filters: { mutationKey, status: "error" },
     select: (mutation) => mutation,
   });
 
@@ -73,7 +88,7 @@ export function PendingSyncBadge() {
     return null;
   }
 
-  const noun = (count: number) => (count === 1 ? "expense" : "expenses");
+  const noun = (count: number) => (count === 1 ? nounSingular : nounPlural);
 
   return (
     <View style={styles.container}>

@@ -9,6 +9,7 @@ import { api } from "@/services/api";
 import type { ListCategory, Category, CategoryInput } from "@/types/category";
 import { queryKeysFactory, UseQueryOptionsWrapper } from "@/services/query";
 import { buildOptions } from "@/services/query";
+import { CATEGORY_CREATE_MUTATION_KEY } from "@/services/offline/mutation-keys";
 import { ListMeta } from "@/types/api";
 
 const CATEGORY_QUERY_KEY = `categories` as const;
@@ -50,10 +51,13 @@ export const useCategory = (
 export const useCreateCategory = (
   options?: UseMutationOptions<Category, Error, CategoryInput>,
 ) => {
-  const queryClient = useQueryClient();
+  // mutationFn + the optimistic onMutate/onSettled pair come from the
+  // mutationDefaults registered in services/offline/query-client.ts (keyed by
+  // CATEGORY_CREATE_MUTATION_KEY) — this is what lets a mutation paused
+  // offline resume correctly after a cold restart, mirroring useCreateExpense.
   return useMutation({
-    mutationFn: (input: CategoryInput) => api().category.create(input),
-    ...buildOptions(queryClient, [categoryKeys.lists()], options),
+    mutationKey: CATEGORY_CREATE_MUTATION_KEY,
+    ...options,
   });
 };
 

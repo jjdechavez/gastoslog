@@ -16,8 +16,7 @@ import { Screen } from "@/components/Screen";
 import { ListRow } from "@/components/ListRow";
 import { Amount } from "@/components/Amount";
 import { PendingSyncBadge } from "@/components/PendingSyncBadge";
-import { IconSymbol } from "@/components/ui/IconSymbol";
-import { PicoColors } from "@/styles/pico-lime";
+import { PendingTag } from "@/components/PendingTag";
 import {
   ScreenState,
   ListFooterLoader,
@@ -219,18 +218,6 @@ function ExpenseItem(props: ExpenseItemProps) {
   );
 }
 
-// Small pill shown next to an optimistic (not-yet-synced) expense's amount, so
-// the "this hasn't reached the server yet" state reads clearly without dimming
-// the whole row (which made the date/category hard to read).
-function PendingTag() {
-  return (
-    <View style={styles.pendingTag}>
-      <IconSymbol name="clock" size={11} color={PicoColors["lime-500"]} />
-      <ThemedText style={styles.pendingTagText}>Pending</ThemedText>
-    </View>
-  );
-}
-
 type ExpenseOptionProps = {
   expense: Expense;
 };
@@ -271,21 +258,6 @@ const styles = StyleSheet.create({
   pendingRight: {
     alignItems: "flex-end",
     gap: 4,
-  },
-  pendingTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    backgroundColor: PicoColors["lime-50"],
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-  },
-  pendingTagText: {
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: "600",
-    color: PicoColors["lime-800"],
   },
   expenseFilterContainer: {
     display: "flex",

@@ -39,11 +39,18 @@ export function SelectCategory(props: SelectCategoryProps) {
     if (!data?.pages) return { pages: [] as SelectItem[][] };
     return {
       pages: data.pages.map((page) =>
-        (page?.data ?? []).map((cat: any) => ({
-          id: cat.id,
-          label: cat.name,
-          value: cat.id,
-        })),
+        (page?.data ?? [])
+          // Exclude optimistic (not-yet-synced) categories — see
+          // services/offline/mutation-defaults.ts. Their id is a negative
+          // temp id, and attaching an expense to one would send that
+          // negative categoryId to the server and fail once the expense
+          // create mutation actually runs.
+          .filter((cat: any) => cat.id >= 0)
+          .map((cat: any) => ({
+            id: cat.id,
+            label: cat.name,
+            value: cat.id,
+          })),
       ),
     } as { pages: SelectItem[][] };
   }, [data]);

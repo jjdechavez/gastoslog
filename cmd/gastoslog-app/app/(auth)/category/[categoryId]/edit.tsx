@@ -8,7 +8,7 @@ import { Alert } from "@/components/Alert";
 import { Button, ButtonText } from "@/components/Button";
 import { HGroup } from "@/components/HGroup";
 import { FormField } from "@/components/FormField";
-import { LoadingState } from "@/components/ScreenState";
+import { EmptyState, LoadingState } from "@/components/ScreenState";
 import { Screen } from "@/components/Screen";
 import {
   categoryKeys,
@@ -27,7 +27,17 @@ export default function EditCategoryScreen() {
   const { categoryId } = useLocalSearchParams();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const { data, status } = useCategory(categoryId as string);
+  // Optimistic rows use a negative temp id (see
+  // services/offline/mutation-defaults.ts) and have no server-side record
+  // yet — a GET for one would 404 (or hang while paused offline), so this
+  // must be checked before firing useCategory at all.
+  const parsedCategoryId = Number(categoryId);
+  const isPendingSync =
+    Number.isFinite(parsedCategoryId) && parsedCategoryId < 0;
+
+  const { data, status } = useCategory(categoryId as string, {
+    enabled: !isPendingSync,
+  });
 
   const form = useForm<CategoryFormValues, any, CategoryInput>({
     defaultValues: { name: "", description: "" },
@@ -66,6 +76,17 @@ export default function EditCategoryScreen() {
     setSubmitError(null);
     mutation.mutate(input);
   };
+
+  if (isPendingSync) {
+    return (
+      <Screen>
+        <EmptyState message="This category hasn't synced yet — you can edit it once it's uploaded." />
+        <Button onPress={() => router.back()}>
+          <ButtonText>Go back</ButtonText>
+        </Button>
+      </Screen>
+    );
+  }
 
   if (status === "success") {
     return (

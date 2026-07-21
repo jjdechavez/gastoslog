@@ -4,7 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 
-import { LoadingState } from "@/components/ScreenState";
+import { Button, ButtonText } from "@/components/Button";
+import { Screen } from "@/components/Screen";
+import { EmptyState, LoadingState } from "@/components/ScreenState";
 import {
   targetLogKeys,
   useTargetLog,
@@ -21,7 +23,17 @@ export default function EditTargetLogScreen() {
   const { targetId, logId } = useLocalSearchParams();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const { data, status } = useTargetLog(targetId as string, logId as string);
+  // A log added while offline is rendered with a negative temp id (see
+  // services/offline/mutation-defaults.ts) until the create mutation
+  // resolves and the logs list is invalidated/refetched with the real
+  // server id. There's nothing to fetch yet for a temp id — skip the
+  // detail query and show an explanatory empty state instead of spinning
+  // forever on LoadingState.
+  const isTempLog = Number(logId) < 0;
+
+  const { data, status } = useTargetLog(targetId as string, logId as string, {
+    enabled: !isTempLog,
+  });
 
   const form = useForm({
     defaultValues: {
@@ -69,6 +81,17 @@ export default function EditTargetLogScreen() {
     setSubmitError(null);
     mutation.mutate(payload);
   };
+
+  if (isTempLog) {
+    return (
+      <Screen>
+        <EmptyState message="This entry hasn't finished syncing yet. Check back once it's online." />
+        <Button onPressIn={() => router.back()}>
+          <ButtonText>Go back</ButtonText>
+        </Button>
+      </Screen>
+    );
+  }
 
   if (status === "success") {
     return (
