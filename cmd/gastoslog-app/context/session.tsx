@@ -5,13 +5,21 @@ import { api } from "@/services/api";
 type SessionContextType = {
   isLoading: boolean;
   session: string | null;
-  signIn: (email: string, password: string) => Promise<boolean>;
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   signUp: (
     username: string,
     password: string,
   ) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
 };
+
+function getErrorMessage(error: unknown, fallback: string) {
+  const data = (error as { data?: { detail?: string } } | undefined)?.data;
+  return data?.detail || fallback;
+}
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
@@ -25,10 +33,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
       setSession(response.token);
       setRefreshToken(response.refresh_token)
-      return true;
+      return { success: true };
     } catch (error) {
       console.error("Sign in error:", error);
-      return false;
+      return {
+        success: false,
+        error: getErrorMessage(error, "Unable to sign in. Please try again."),
+      };
     }
   };
 

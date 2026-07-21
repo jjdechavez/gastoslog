@@ -8,6 +8,14 @@ import {
   ListExpense,
 } from "@/types/expense";
 import { ListMeta } from "@/types/api";
+import {
+  Target,
+  TargetInput,
+  ListTarget,
+  TargetLog,
+  TargetLogInput,
+  ListTargetLog,
+} from "@/types/target";
 
 const V1 = "/v1" as const;
 
@@ -174,6 +182,111 @@ export const api = (version = V1) => {
         return await request(`${version}/expenses/${expenseId}`, {
           method: "DELETE",
         });
+      },
+    },
+    target: {
+      list: async (query?: Partial<ListMeta> & { status?: string; direction?: string }) => {
+        const searchParams = getSearchParams(query || {});
+        return await request<ListTarget>(
+          `${version}/targets${searchParams}`,
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        );
+      },
+      create: async (input: TargetInput) => {
+        return await request<{ data: Target }>(`${version}/targets`, {
+          method: "POST",
+          body: {
+            name: input.name,
+            targetAmount: input.targetAmount,
+            type: input.type,
+            direction: input.direction,
+            deadlineAt: input.deadlineAt,
+          },
+        });
+      },
+      detail: async (targetId: string) => {
+        return await request<{ data: Target }>(
+          `${version}/targets/${targetId}`,
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        );
+      },
+      update: async (targetId: string, input: TargetInput) => {
+        return await request<{ data: Target }>(
+          `${version}/targets/${targetId}`,
+          {
+            method: "POST",
+            body: {
+              name: input.name,
+              targetAmount: input.targetAmount,
+              type: input.type,
+              direction: input.direction,
+              deadlineAt: input.deadlineAt,
+            },
+          },
+        );
+      },
+      delete: async (targetId: string) => {
+        return await request(`${version}/targets/${targetId}`, {
+          method: "DELETE",
+        });
+      },
+      logs: {
+        list: async (targetId: string, query?: Partial<ListMeta>) => {
+          const searchParams = getSearchParams(query || {});
+          return await request<ListTargetLog>(
+            `${version}/targets/${targetId}/logs${searchParams}`,
+            {
+              method: "GET",
+              credentials: "include",
+            },
+          );
+        },
+        create: async (targetId: string, input: TargetLogInput) => {
+          return await request<{ data: TargetLog }>(
+            `${version}/targets/${targetId}/logs`,
+            {
+              method: "POST",
+              body: {
+                amount: input.amount,
+                notes: input.notes,
+                entryDate: input.entryDate,
+              },
+            },
+          );
+        },
+        detail: async (targetId: string, logId: string) => {
+          return await request<{ data: TargetLog }>(
+            `${version}/targets/${targetId}/logs/${logId}`,
+            {
+              method: "GET",
+              credentials: "include",
+            },
+          );
+        },
+        update: async (targetId: string, logId: string, input: TargetLogInput) => {
+          return await request<{ data: TargetLog }>(
+            `${version}/targets/${targetId}/logs/${logId}`,
+            {
+              method: "POST",
+              body: {
+                amount: input.amount,
+                notes: input.notes,
+                entryDate: input.entryDate,
+              },
+            },
+          );
+        },
+        delete: async (targetId: string, logId: string) => {
+          return await request(`${version}/targets/${targetId}/logs/${logId}`, {
+            method: "DELETE",
+          });
+        },
       },
     },
   };

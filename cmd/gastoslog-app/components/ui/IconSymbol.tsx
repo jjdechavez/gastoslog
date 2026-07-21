@@ -20,10 +20,13 @@ const MAPPING = {
   "house.fill": "home",
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
+  "chevron.left": "chevron-left",
   "chevron.right": "chevron-right",
+  ellipsis: "more-horiz",
   person: "person",
   magnifyingglass: "search",
   plus: "add",
+  creditcard: "credit-card",
   xmark: "close",
 } as IconMapping;
 

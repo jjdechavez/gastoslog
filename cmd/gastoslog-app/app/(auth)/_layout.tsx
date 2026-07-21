@@ -32,6 +32,19 @@ export default function AuthLayout() {
         name="expense/[expenseId]/edit"
         options={{ title: "Edit expense" }}
       />
+      <Stack.Screen name="target/create" options={{ title: "Create target" }} />
+      <Stack.Screen
+        name="target/[targetId]"
+        options={{
+          title: "Target Details",
+          headerTitleAlign: "center",
+          headerTitleStyle: { fontSize: 16 },
+        }}
+      />
+      <Stack.Screen
+        name="target/[targetId]/log"
+        options={{ title: "Add Progress", headerTitleAlign: "center" }}
+      />
       <Stack.Screen name="+not-found" />
     </Stack>
   );
