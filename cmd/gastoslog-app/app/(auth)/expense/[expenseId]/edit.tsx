@@ -4,7 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 
-import { LoadingState } from "@/components/ScreenState";
+import { Button, ButtonText } from "@/components/Button";
+import { Screen } from "@/components/Screen";
+import { EmptyState, LoadingState } from "@/components/ScreenState";
 import { useCategories } from "@/services/api-hook/category";
 import {
   expenseKeys,
@@ -22,7 +24,17 @@ export default function EditExpenseScreen() {
   const { expenseId } = useLocalSearchParams();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const { data, status } = useExpense(expenseId as string);
+  // Optimistic rows use a negative temp id (see
+  // services/offline/mutation-defaults.ts) and have no server-side record
+  // yet — a GET for one would 404 (or hang while paused offline), so this
+  // must be checked before firing useExpense at all.
+  const parsedExpenseId = Number(expenseId);
+  const isPendingSync =
+    Number.isFinite(parsedExpenseId) && parsedExpenseId < 0;
+
+  const { data, status } = useExpense(expenseId as string, {
+    enabled: !isPendingSync,
+  });
   const categories = useCategories();
 
   const form = useForm<ExpenseFormValues, any, ExpenseInput>({
@@ -70,6 +82,17 @@ export default function EditExpenseScreen() {
     setSubmitError(null);
     mutation.mutate(payload);
   };
+
+  if (isPendingSync) {
+    return (
+      <Screen>
+        <EmptyState message="This expense hasn't synced yet — you can edit it once it's uploaded." />
+        <Button onPress={() => router.back()}>
+          <ButtonText>Go back</ButtonText>
+        </Button>
+      </Screen>
+    );
+  }
 
   if (categories.data && status === "success") {
     return (

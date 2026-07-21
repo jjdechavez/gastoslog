@@ -45,5 +45,5 @@ export function fromCentToRegularPrice(
 
     return phFormatter.format(cent);
   }
-  return amount / 100;
+  return cent;
 }

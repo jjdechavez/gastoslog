@@ -3,6 +3,7 @@ import {
   FlatList,
   Pressable,
   StyleSheet,
+  View,
   Alert as RNAlert,
 } from "react-native";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -14,6 +15,9 @@ import { ThemedView } from "@/components/ThemedView";
 import { Screen } from "@/components/Screen";
 import { ListRow } from "@/components/ListRow";
 import { Amount } from "@/components/Amount";
+import { PendingSyncBadge } from "@/components/PendingSyncBadge";
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import { PicoColors } from "@/styles/pico-lime";
 import {
   ScreenState,
   ListFooterLoader,
@@ -142,6 +146,8 @@ export default function ExpenseScreen() {
 
         <FloatingButton href="/(auth)/expense/create" />
 
+        <PendingSyncBadge />
+
         <ExpenseFilters />
 
         {expenseResult.status === "success" && (
@@ -172,20 +178,56 @@ type ExpenseItemProps = {
 function ExpenseItem(props: ExpenseItemProps) {
   const router = useRouter();
   const [toggleOption, setToogleOption] = useState(false);
+  // Optimistic rows use a negative temp id (see services/offline/mutation-defaults.ts)
+  // and can't be opened for edit/delete yet — no server id exists until the
+  // create mutation resolves and the list is invalidated/refetched.
+  const isOptimistic =
+    props.expense.id < 0 || (props.expense as any).__optimistic === true;
 
   return (
     <Pressable
-      onPress={() => router.push(`/(auth)/expense/${props.expense.id}/edit`)}
-      onLongPress={() => setToogleOption((prev) => !prev)}
+      onPress={() => {
+        if (isOptimistic) {
+          return;
+        }
+        router.push(`/(auth)/expense/${props.expense.id}/edit`);
+      }}
+      onLongPress={() => {
+        if (isOptimistic) {
+          return;
+        }
+        setToogleOption((prev) => !prev);
+      }}
     >
       <ListRow
         style={styles.item}
         title={toFormattedDate(props.expense.createdAt)}
         subtitle={props.expense.category.name}
-        right={<Amount cents={props.expense.amount} sign="-" />}
+        right={
+          isOptimistic ? (
+            <View style={styles.pendingRight}>
+              <Amount cents={props.expense.amount} sign="-" tone="muted" />
+              <PendingTag />
+            </View>
+          ) : (
+            <Amount cents={props.expense.amount} sign="-" />
+          )
+        }
       />
       {toggleOption ? <ExpenseOption expense={props.expense} /> : null}
     </Pressable>
+  );
+}
+
+// Small pill shown next to an optimistic (not-yet-synced) expense's amount, so
+// the "this hasn't reached the server yet" state reads clearly without dimming
+// the whole row (which made the date/category hard to read).
+function PendingTag() {
+  return (
+    <View style={styles.pendingTag}>
+      <IconSymbol name="clock" size={11} color={PicoColors["lime-500"]} />
+      <ThemedText style={styles.pendingTagText}>Pending</ThemedText>
+    </View>
   );
 }
 
@@ -225,6 +267,25 @@ const styles = StyleSheet.create({
   item: {
     paddingHorizontal: 12,
     paddingVertical: 12,
+  },
+  pendingRight: {
+    alignItems: "flex-end",
+    gap: 4,
+  },
+  pendingTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: PicoColors["lime-50"],
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  pendingTagText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "600",
+    color: PicoColors["lime-800"],
   },
   expenseFilterContainer: {
     display: "flex",

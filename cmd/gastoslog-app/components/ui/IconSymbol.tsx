@@ -26,6 +26,9 @@ const MAPPING = {
   xmark: "close",
   flag: "flag",
   "list.bullet.rectangle.portrait": "receipt-long",
+  "arrow.triangle.2.circlepath": "sync",
+  clock: "schedule",
+  "exclamationmark.triangle.fill": "error-outline",
 } as const satisfies Partial<Record<SymbolViewProps["name"], MaterialIconName>>;
 
 type IconSymbolName = keyof typeof MAPPING;

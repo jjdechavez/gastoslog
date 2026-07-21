@@ -11,11 +11,12 @@ import { Screen } from "@/components/Screen";
 import { useCategories } from "@/services/api-hook/category";
 import { useCreateExpense } from "@/services/api-hook/expense";
 import { applyServerFieldErrors, getErrorMessage } from "@/services/errors";
+import { useOnlineStatus } from "@/services/offline/useOnlineStatus";
 import { ExpenseInputSchema, type ExpenseInput } from "@/types/expense";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { Controller, useForm, type UseFormReturn } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { z } from "zod/v4";
 
 export type ExpenseFormValues = z.input<typeof ExpenseInputSchema>;
@@ -106,7 +107,25 @@ export function ExpenseForm(props: ExpenseFormProps) {
 export default function CreateExpenseScreen() {
   const router = useRouter();
   const categories = useCategories();
+  const isOnline = useOnlineStatus();
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // react-query does not scope a useMutation() hook's onSuccess/onError to
+  // the component's lifetime: they're captured on the underlying Mutation
+  // instance at the moment mutate() is called and invoked directly from
+  // Mutation.execute()/continue(), regardless of whether this screen is
+  // still mounted. That matters here specifically because the create
+  // mutation can be paused (offline) and resumed much later — by the time
+  // it actually resolves, the user may well have navigated away already.
+  // Without this guard, that later resolution would fire the router.push
+  // below and yank the user back to the expense list from wherever they
+  // currently are.
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const form = useForm<ExpenseFormValues, any, ExpenseInput>({
     defaultValues: {
@@ -127,6 +146,9 @@ export default function CreateExpenseScreen() {
 
   const mutation = useCreateExpense({
     onSuccess: () => {
+      if (!isMountedRef.current) {
+        return;
+      }
       router.push({
         pathname: "/(auth)/(tabs)/expense",
         params: {
@@ -135,6 +157,9 @@ export default function CreateExpenseScreen() {
       });
     },
     onError: (error) => {
+      if (!isMountedRef.current) {
+        return;
+      }
       applyServerFieldErrors(error, form);
       setSubmitError(
         getErrorMessage(error, "Unable to create expense. Please try again."),
@@ -145,6 +170,23 @@ export default function CreateExpenseScreen() {
   const onSubmit = (payload: ExpenseInput) => {
     setSubmitError(null);
     mutation.mutate(payload);
+
+    if (!isOnline) {
+      // Offline: the mutation pauses (networkMode: "online") and only
+      // resumes once connectivity returns, so the onSuccess above won't fire
+      // now — navigate right away so the user isn't left staring at the form
+      // after tapping "Create". The optimistic row already appeared in the
+      // list via onMutate.
+      router.push({
+        pathname: "/(auth)/(tabs)/expense",
+        params: {
+          // Kept short — the persistent "waiting to sync" pill on the expense
+          // list (PendingSyncBadge) already communicates the sync status, so
+          // repeating it here would be redundant.
+          success: "Expense saved offline",
+        },
+      });
+    }
   };
 
   if (categories.data) {

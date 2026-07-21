@@ -11,6 +11,7 @@ import {
   queryKeysFactory,
   UseQueryOptionsWrapper,
 } from "@/services/query";
+import { EXPENSE_CREATE_MUTATION_KEY } from "@/services/offline/mutation-keys";
 import type {
   Expense,
   ExpenseInput,
@@ -27,10 +28,18 @@ type ExpensesQueryKey = typeof expenseKeys;
 export const useCreateExpense = (
   options?: UseMutationOptions<Expense, Error, ExpenseInput>,
 ) => {
-  const queryClient = useQueryClient();
+  // mutationFn + the optimistic onMutate/onSettled pair come from the
+  // mutationDefaults registered in app/_layout.tsx (keyed by
+  // EXPENSE_CREATE_MUTATION_KEY) — this is what lets a mutation paused
+  // offline resume correctly after a cold restart, since react-query can't
+  // persist functions, only the key. `options` (onSuccess/onError from the
+  // create screen) is spread last so it layers on top: react-query does NOT
+  // deep-merge same-named callbacks between defaults and options (options
+  // wins), but onSuccess/onError are different callback names than
+  // onMutate/onSettled, so both sets run without clashing.
   return useMutation({
-    mutationFn: (input: ExpenseInput) => api().expense.create(input),
-    ...buildOptions(queryClient, [expenseKeys.lists()], options),
+    mutationKey: EXPENSE_CREATE_MUTATION_KEY,
+    ...options,
   });
 };
 
