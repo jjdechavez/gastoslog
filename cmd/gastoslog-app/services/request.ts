@@ -9,6 +9,15 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
   onUnauthorized = handler;
 }
 
+type RefreshedTokens = { session: string; refreshToken: string };
+let onTokensRefreshed: ((tokens: RefreshedTokens) => void) | null = null;
+
+export function setTokensRefreshedHandler(
+  handler: ((tokens: RefreshedTokens) => void) | null,
+) {
+  onTokensRefreshed = handler;
+}
+
 let refreshPromise: Promise<string> | null = null;
 
 async function refreshAccessToken(): Promise<string> {
@@ -28,6 +37,13 @@ async function refreshAccessToken(): Promise<string> {
 
   await SecureStore.setItemAsync("session", data.token);
   await SecureStore.setItemAsync("refreshToken", data.refresh_token);
+
+  // SecureStore (above) is the source of truth for the HTTP layer, which reads
+  // it fresh on every request. But context/session.tsx keeps an in-memory
+  // mirror (useStorageState) that powers session/UI state; without this it
+  // would drift to the old, now-expired JWT after a silent refresh. Notify it
+  // so the two copies stay in sync.
+  onTokensRefreshed?.({ session: data.token, refreshToken: data.refresh_token });
 
   return data.token;
 }
@@ -77,11 +93,23 @@ export const request = ofetch.create({
     try {
       const newToken = await getRefreshedToken();
 
-      const retryOptions = { ...options };
-      retryOptions.headers = new Headers(options.headers);
-      retryOptions.headers.set("Authorization", `Bearer ${newToken}`);
+      // Retry via the bare global ofetch with an EXPLICIT options object. Do
+      // NOT spread `options` here: it carries this instance's onRequest/
+      // onResponse hooks, and ofetch would re-run them on the retry —
+      // onRequest would `append` a second (stale) Authorization header
+      // (corrupting the token so the server 401s), and onResponse would
+      // re-enter this refresh logic on that 401, causing an infinite
+      // refresh loop.
+      const headers = new Headers(options.headers);
+      headers.set("Authorization", `Bearer ${newToken}`);
 
-      const retried = await ofetch.raw(request, retryOptions);
+      const retried = await ofetch.raw(request, {
+        method: options.method,
+        // Already JSON-stringified by ofetch on the original request;
+        // re-passing the string is safe (ofetch won't double-encode it).
+        body: options.body,
+        headers,
+      });
       response._data = retried._data;
       Object.defineProperty(response, "status", {
         value: retried.status,

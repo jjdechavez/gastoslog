@@ -3,7 +3,10 @@ import { Alert } from "react-native";
 import { useStorageState } from "@/hooks/useStorageState";
 import { api } from "@/services/api";
 import { getErrorMessage } from "@/services/errors";
-import { setUnauthorizedHandler } from "@/services/request";
+import {
+  setUnauthorizedHandler,
+  setTokensRefreshedHandler,
+} from "@/services/request";
 import { queryClient } from "@/services/offline/query-client";
 import { asyncStoragePersister } from "@/services/offline/persister";
 import { EXPENSE_CREATE_MUTATION_KEY } from "@/services/offline/mutation-keys";
@@ -124,7 +127,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       setSession(null);
       setRefreshToken(null);
     });
-    return () => setUnauthorizedHandler(null);
+    // Keep in-memory session state aligned with tokens rotated by a silent
+    // refresh in request.ts (which writes SecureStore directly). Without this
+    // the React copy would keep the old, expired JWT after a background
+    // refresh. The `sub` claim is unchanged across a refresh, so the persist
+    // buster (getUserKeyFromToken) stays stable — no cache remount.
+    setTokensRefreshedHandler(({ session, refreshToken }) => {
+      setSession(session);
+      setRefreshToken(refreshToken);
+    });
+    return () => {
+      setUnauthorizedHandler(null);
+      setTokensRefreshedHandler(null);
+    };
   }, [setSession, setRefreshToken]);
 
   return (
