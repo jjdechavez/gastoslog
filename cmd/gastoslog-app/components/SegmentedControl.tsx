@@ -33,8 +33,13 @@ export function SegmentedControl<TValue extends string | number>({
               style={{
                 backgroundColor: active
                   ? PicoThemeVariables.primaryBackground
-                  : "transparent",
-                borderColor: PicoThemeVariables.formElementBorder,
+                  : PicoThemeVariables.contrastBackground,
+                borderColor: active
+                  ? PicoThemeVariables.primaryInverse
+                  : PicoThemeVariables.contrastBorder,
+                paddingVertical: PicoThemeVariables.formElementSpacingVertical,
+                paddingHorizontal:
+                  PicoThemeVariables.formElementSpacingVertical,
               }}
             >
               <ButtonText
