@@ -1,20 +1,52 @@
 import { ofetch } from "ofetch";
 import * as SecureStore from "expo-secure-store";
 
-let refreshingToken = false;
-let requestsQueue: { resolve: any; reject: any }[] = [];
+const AUTH_ENDPOINTS = ["/auth/sign-in", "/auth/sign-up", "/auth/refresh-token"];
 
-const processQueue = (error: any, token: string | null = null) => {
-  requestsQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
+let onUnauthorized: (() => void) | null = null;
 
-  requestsQueue = [];
-};
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorized = handler;
+}
+
+let refreshPromise: Promise<string> | null = null;
+
+async function refreshAccessToken(): Promise<string> {
+  const refreshToken = await SecureStore.getItemAsync("refreshToken");
+  if (!refreshToken) {
+    throw new Error("No refresh token available");
+  }
+
+  const data = await ofetch<{ token: string; refresh_token: string }>(
+    "/v1/auth/refresh-token",
+    {
+      baseURL: process.env.EXPO_PUBLIC_API_URL,
+      method: "POST",
+      body: { refresh_token: refreshToken },
+    },
+  );
+
+  await SecureStore.setItemAsync("session", data.token);
+  await SecureStore.setItemAsync("refreshToken", data.refresh_token);
+
+  return data.token;
+}
+
+// Ensures concurrent 401s trigger a single refresh call, not one per request.
+function getRefreshedToken(): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = refreshAccessToken().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+async function clearSession() {
+  await SecureStore.deleteItemAsync("session");
+  await SecureStore.deleteItemAsync("refreshToken");
+  onUnauthorized?.();
+}
 
 export const request = ofetch.create({
   baseURL: process.env.EXPO_PUBLIC_API_URL,
@@ -23,70 +55,41 @@ export const request = ofetch.create({
   },
   credentials: "include",
   timeout: 3000,
-  async onRequest({ request, options }) {
-    console.log("[fetch request]", request, options);
+  async onRequest({ options }) {
     const token = await SecureStore.getItemAsync("session");
     if (token) {
       options.headers.append("Authorization", `Bearer ${token}`);
     }
   },
-  async onRequestError({ request, response }) {
-    console.log(
-      "[fetch request error]",
-      request,
-      response?.status,
-      response?.body,
-    );
+  async onRequestError({ request, error }) {
+    console.log("[fetch request error]", request, error);
   },
   async onResponse({ request, response, options }) {
-    console.log("[fetch response]", request, options);
     const url = String(request);
-    const isAuthEndpoint =
-      url.includes("/auth/sign-in") || url.includes("/auth/sign-up");
-    // Handle retry mechanism when accessToken expired with refresh token (NOTE not implemented yet)
-    if (response.status === 401 && !isAuthEndpoint) {
-      if (refreshingToken) {
-        return new Promise((resolve, reject) => {
-          requestsQueue.push({ resolve, reject });
-        })
-          .then((resp) => {
-            if (resp) {
-              ofetch(request, options);
-            }
-          })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
-      }
-      refreshingToken = true;
-      const retry = new Promise((resolve, reject) => {
-        ofetch
-          .raw<{ token: string }>("/v1/auth/refresh-token", {
-            baseURL: process.env.EXPO_PUBLIC_API_URL,
-            method: "POST",
-            credentials: "include",
-            body: {
-              refresh_token: SecureStore.getItem("refreshToken"),
-            },
-          })
-          .then((resp) => {
-            const sessionToken = resp._data?.token;
-            processQueue(null, sessionToken);
-            SecureStore.setItem("session", sessionToken || "");
-            resolve(this);
-          })
-          .catch((err) => {
-            processQueue(err, null);
-            // logout
-            SecureStore.setItemAsync("session", "");
-            reject(this);
-          })
-          .finally(() => {
-            refreshingToken = false;
-            // resolve(this);
-          });
+    const isAuthEndpoint = AUTH_ENDPOINTS.some((endpoint) =>
+      url.includes(endpoint),
+    );
+
+    if (response.status !== 401 || isAuthEndpoint) {
+      return;
+    }
+
+    try {
+      const newToken = await getRefreshedToken();
+
+      const retryOptions = { ...options };
+      retryOptions.headers = new Headers(options.headers);
+      retryOptions.headers.set("Authorization", `Bearer ${newToken}`);
+
+      const retried = await ofetch.raw(request, retryOptions);
+      response._data = retried._data;
+      Object.defineProperty(response, "status", {
+        value: retried.status,
+        configurable: true,
       });
-      await retry;
+    } catch (error) {
+      await clearSession();
+      throw error;
     }
   },
 });
