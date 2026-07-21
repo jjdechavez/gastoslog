@@ -1,4 +1,4 @@
-import { Link, useLocalSearchParams } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import {
   FlatList,
   Pressable,
@@ -71,9 +71,15 @@ function TargetDetailHeader({ targetId }: { targetId: string }) {
   );
 }
 
-function TargetLogItem({ log }: { log: TargetLog }) {
+function TargetLogItem({ log, targetId }: { log: TargetLog; targetId: string }) {
+  const router = useRouter();
+
   return (
-    <Pressable>
+    <Pressable
+      onPress={() =>
+        router.push(`/(auth)/target/${targetId}/log/${log.id}/edit`)
+      }
+    >
       <Card>
         <CardBody>
           <ListRow
@@ -117,7 +123,9 @@ export default function TargetDetailScreen() {
               logsQuery.fetchNextPage();
             }
           }}
-          renderItem={({ item }) => <TargetLogItem log={item} />}
+          renderItem={({ item }) => (
+            <TargetLogItem log={item} targetId={targetId} />
+          )}
           ListFooterComponent={() => (
             <ListFooterLoader loading={logsQuery.isFetchingNextPage} />
           )}

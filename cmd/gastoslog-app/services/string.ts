@@ -35,9 +35,15 @@ export function fromCentToRegularPrice(
   opts?: { type: "regular" | "withDecimal" },
 ) {
   const type = opts?.type ? opts.type : "regular";
+  const cent = amount / 100;
 
   if (type === "withDecimal") {
-    return `₱${(amount / 100).toFixed(2)}`;
+    const phFormatter = new Intl.NumberFormat("fil-PH", {
+      style: "currency",
+      currency: "PHP",
+    });
+
+    return phFormatter.format(cent);
   }
   return amount / 100;
 }

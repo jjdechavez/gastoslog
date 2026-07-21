@@ -49,6 +49,14 @@ export default function AuthLayout() {
           headerTitleStyle: { fontSize: 16 },
         }}
       />
+      <Stack.Screen
+        name="target/[targetId]/log/[logId]/edit"
+        options={{
+          title: "Edit Progress",
+          headerTitleAlign: "center",
+          headerTitleStyle: { fontSize: 16 },
+        }}
+      />
       <Stack.Screen name="+not-found" />
     </Stack>
   );

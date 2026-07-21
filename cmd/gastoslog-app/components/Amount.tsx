@@ -16,7 +16,14 @@ const TONE_COLOR: Record<AmountTone, string | undefined> = {
   muted: undefined,
 };
 
-export function Amount({ cents, sign, tone = "default", style, type, ...rest }: AmountProps) {
+export function Amount({
+  cents,
+  sign,
+  tone = "default",
+  style,
+  type,
+  ...rest
+}: AmountProps) {
   const formatted = fromCentToRegularPrice(cents, { type: "withDecimal" });
   const color = TONE_COLOR[tone];
 

@@ -28,6 +28,8 @@ const MAPPING = {
   plus: "add",
   creditcard: "credit-card",
   xmark: "close",
+  flag: "flag",
+  budget: "receipt-long",
 } as IconMapping;
 
 /**
