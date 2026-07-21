@@ -48,7 +48,7 @@ export default function EditCategoryScreen() {
         updatedCategory,
       );
       router.push({
-        pathname: "/(auth)/(tabs)/category",
+        pathname: "/(auth)/category",
         params: {
           success: "Changes were successfully saved!",
         },
