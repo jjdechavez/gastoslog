@@ -7,7 +7,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func GenerateJWTToken(secret []byte, userID int64, expiresIn time.Duration) (string, error) {
+const (
+	AccessTokenType  = "access"
+	RefreshTokenType = "refresh"
+)
+
+func GenerateJWTToken(secret []byte, userID int64, expiresIn time.Duration, tokenType string) (string, error) {
 	if expiresIn == 0 {
 		expiresIn = time.Hour
 	}
@@ -16,6 +21,7 @@ func GenerateJWTToken(secret []byte, userID int64, expiresIn time.Duration) (str
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": userID,          // Subject
 		"iss": "gastoslog-app", // Issuer
+		"typ": tokenType,       // Token type: access | refresh
 		// "aud": "" // Audience or role
 		"exp": expiresAt.Unix(),  // ExpiredAt
 		"iat": time.Now().Unix(), // Issued At

@@ -1,7 +1,8 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect } from "react";
 import { useStorageState } from "@/hooks/useStorageState";
 import { api } from "@/services/api";
 import { getErrorMessage } from "@/services/errors";
+import { setUnauthorizedHandler } from "@/services/request";
 
 type SessionContextType = {
   isLoading: boolean;
@@ -21,14 +22,14 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [[isLoading, session], setSession] = useStorageState("session");
-  const [_, setRefreshToken] = useStorageState("refreshToken");
+  const [, setRefreshToken] = useStorageState("refreshToken");
 
   const signIn = async (email: string, password: string) => {
     try {
       const response = await api().auth.signIn(email, password);
 
       setSession(response.token);
-      setRefreshToken(response.refresh_token)
+      setRefreshToken(response.refresh_token);
       return { success: true };
     } catch (error) {
       console.error("Sign in error:", error);
@@ -53,7 +54,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     setSession(null);
+    setRefreshToken(null);
   };
+
+  // Fires when request.ts fails to refresh the access token (expired/invalid
+  // refresh token), so local state stays in sync with the cleared storage.
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setSession(null);
+      setRefreshToken(null);
+    });
+    return () => setUnauthorizedHandler(null);
+  }, [setSession, setRefreshToken]);
 
   return (
     <SessionContext.Provider

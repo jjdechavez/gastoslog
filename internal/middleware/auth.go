@@ -55,6 +55,9 @@ func NewBasicAuthMiddleware(api huma.API) func(ctx huma.Context, next func(huma.
 		} else if exp := claims["exp"].(float64); int64(exp) < time.Now().Unix() {
 			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Expired token")
 			return
+		} else if claims["typ"] != auth.AccessTokenType {
+			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Invalid token")
+			return
 		}
 
 		if token != nil {

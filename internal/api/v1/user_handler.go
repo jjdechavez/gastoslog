@@ -67,13 +67,13 @@ func (h *UserHandler) SignIn(ctx context.Context, input *SignInInput) (*SignInOu
 
 	resp := &SignInOutput{}
 
-	token, err := auth.GenerateJWTToken([]byte(config.AUTH_SECRET), user.ID, time.Hour)
+	token, err := auth.GenerateJWTToken([]byte(config.AUTH_SECRET), user.ID, time.Hour, auth.AccessTokenType)
 
 	if err != nil {
 		return nil, err
 	}
 
-	refreshToken, err := auth.GenerateJWTToken([]byte(config.AUTH_SECRET), user.ID, time.Hour*24)
+	refreshToken, err := auth.GenerateJWTToken([]byte(config.AUTH_SECRET), user.ID, time.Hour*24*7, auth.RefreshTokenType)
 
 	if err != nil {
 		return nil, err
@@ -120,7 +120,8 @@ type RefreshTokenInput struct {
 
 type RefreshTokenOutput struct {
 	Body struct {
-		Token string `json:"token" doc:"JWT user token"`
+		Token        string `json:"token" doc:"JWT user token"`
+		RefreshToken string `json:"refresh_token" doc:"JWT refresh token"`
 	}
 }
 
@@ -130,19 +131,31 @@ func (h *UserHandler) RefreshToken(ctx context.Context, input *RefreshTokenInput
 		return nil, huma.Error401Unauthorized("Invalid refresh token")
 	}
 
-	userID := token.Claims.(jwt.MapClaims)["sub"].(float64)
+	claims := token.Claims.(jwt.MapClaims)
+	if claims["typ"] != auth.RefreshTokenType {
+		return nil, huma.Error401Unauthorized("Invalid refresh token")
+	}
+
+	userID := claims["sub"].(float64)
 
 	user, err := h.userService.GetUserById(ctx, int64(userID))
 	if err != nil {
 		return nil, huma.Error404NotFound("User not found")
 	}
 
-	accessToken, err := auth.GenerateJWTToken([]byte(config.AUTH_SECRET), user.ID, time.Hour)
+	accessToken, err := auth.GenerateJWTToken([]byte(config.AUTH_SECRET), user.ID, time.Hour, auth.AccessTokenType)
+	if err != nil {
+		return nil, err
+	}
+
+	// Rotate the refresh token so a leaked/older one stops working once used.
+	refreshToken, err := auth.GenerateJWTToken([]byte(config.AUTH_SECRET), user.ID, time.Hour*24*7, auth.RefreshTokenType)
 	if err != nil {
 		return nil, err
 	}
 
 	resp := &RefreshTokenOutput{}
 	resp.Body.Token = accessToken
+	resp.Body.RefreshToken = refreshToken
 	return resp, nil
 }
