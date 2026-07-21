@@ -7,7 +7,7 @@ import { PicoThemeVariables } from "@/styles/pico-lime";
 import { useThemeColor } from "@/hooks/useThemeColor";
 
 export interface DatePickerProps {
-  value: Date;
+  value?: Date | string;
   onChange: (date: Date) => void;
   placeholder?: string;
   maximumDate?: Date;
@@ -23,6 +23,12 @@ export const DatePicker = React.forwardRef<any, DatePickerProps>(
     const borderColor = useThemeColor({}, "borderColor");
     const color = useThemeColor({}, "formElementColor");
     const placeholderColor = useThemeColor({}, "formElementPlaceholderColor");
+
+    const dateValue = props.value
+      ? typeof props.value === "string"
+        ? new Date(props.value)
+        : props.value
+      : undefined;
 
     const formatDate = (date: Date) => {
       return date.toLocaleDateString("en-PH", {
@@ -63,12 +69,12 @@ export const DatePicker = React.forwardRef<any, DatePickerProps>(
             style={[
               styles.text,
               {
-                color: props.value ? color : placeholderColor,
+                color: dateValue ? color : placeholderColor,
               },
             ]}
           >
-            {props.value
-              ? formatDate(props.value)
+            {dateValue
+              ? formatDate(dateValue)
               : props.placeholder || "Select date"}
           </ThemedText>
           <ThemedText style={styles.icon}>📅</ThemedText>
@@ -76,7 +82,7 @@ export const DatePicker = React.forwardRef<any, DatePickerProps>(
 
         {showDatePicker && (
           <DateTimePicker
-            value={props.value}
+            value={dateValue || new Date()}
             mode="date"
             display={Platform.OS === "ios" ? "spinner" : "default"}
             onChange={onDateChange}

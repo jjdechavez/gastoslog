@@ -1,11 +1,15 @@
 import { createContext, useContext } from "react";
 import { useStorageState } from "@/hooks/useStorageState";
 import { api } from "@/services/api";
+import { getErrorMessage } from "@/services/errors";
 
 type SessionContextType = {
   isLoading: boolean;
   session: string | null;
-  signIn: (email: string, password: string) => Promise<boolean>;
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   signUp: (
     username: string,
     password: string,
@@ -25,10 +29,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
       setSession(response.token);
       setRefreshToken(response.refresh_token)
-      return true;
+      return { success: true };
     } catch (error) {
       console.error("Sign in error:", error);
-      return false;
+      return {
+        success: false,
+        error: getErrorMessage(error, "Unable to sign in. Please try again."),
+      };
     }
   };
 

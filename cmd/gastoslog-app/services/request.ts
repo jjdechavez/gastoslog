@@ -40,8 +40,11 @@ export const request = ofetch.create({
   },
   async onResponse({ request, response, options }) {
     console.log("[fetch response]", request, options);
+    const url = String(request);
+    const isAuthEndpoint =
+      url.includes("/auth/sign-in") || url.includes("/auth/sign-up");
     // Handle retry mechanism when accessToken expired with refresh token (NOTE not implemented yet)
-    if (response.status === 401) {
+    if (response.status === 401 && !isAuthEndpoint) {
       if (refreshingToken) {
         return new Promise((resolve, reject) => {
           requestsQueue.push({ resolve, reject });

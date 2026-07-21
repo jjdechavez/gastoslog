@@ -16,6 +16,7 @@ export default function AuthLayout() {
   return (
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="category/index" options={{ title: "Categories" }} />
       <Stack.Screen
         name="category/create"
         options={{ title: "Create category" }}
@@ -31,6 +32,31 @@ export default function AuthLayout() {
       <Stack.Screen
         name="expense/[expenseId]/edit"
         options={{ title: "Edit expense" }}
+      />
+      <Stack.Screen name="target/create" options={{ title: "Create target" }} />
+      <Stack.Screen
+        name="target/[targetId]"
+        options={{
+          title: "Target Details",
+          headerTitleAlign: "center",
+          headerTitleStyle: { fontSize: 16 },
+        }}
+      />
+      <Stack.Screen
+        name="target/[targetId]/log"
+        options={{
+          title: "Add Progress",
+          headerTitleAlign: "center",
+          headerTitleStyle: { fontSize: 16 },
+        }}
+      />
+      <Stack.Screen
+        name="target/[targetId]/log/[logId]/edit"
+        options={{
+          title: "Edit Progress",
+          headerTitleAlign: "center",
+          headerTitleStyle: { fontSize: 16 },
+        }}
       />
       <Stack.Screen name="+not-found" />
     </Stack>

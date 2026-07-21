@@ -1,28 +1,30 @@
+import { Alert } from "@/components/Alert";
 import { Button, ButtonText } from "@/components/Button";
 import { Fieldset, Label } from "@/components/Fieldset";
 import { HGroup } from "@/components/HGroup";
-import { Input, InputError } from "@/components/Input";
+import { FormField } from "@/components/FormField";
+import { InputError } from "@/components/Input";
 import { SelectItem } from "@/components/Select";
 import { SelectCategory } from "@/components/SelectCategory";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import { LoadingState } from "@/components/ScreenState";
+import { Screen } from "@/components/Screen";
 import { useCategories } from "@/services/api-hook/category";
 import { useCreateExpense } from "@/services/api-hook/expense";
-import { fromCentToRegularPrice } from "@/services/string";
-import { PicoLimeStyles } from "@/styles/pico-lime";
-import type { Category } from "@/types/category";
-import {
-  ExpenseInputSchema,
-  type Expense,
-  type ExpenseInput,
-} from "@/types/expense";
+import { applyServerFieldErrors, getErrorMessage } from "@/services/errors";
+import { ExpenseInputSchema, type ExpenseInput } from "@/types/expense";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, type UseFormReturn } from "react-hook-form";
+import { useEffect, useState } from "react";
+import type { z } from "zod/v4";
+
+export type ExpenseFormValues = z.input<typeof ExpenseInputSchema>;
 
 type ExpenseFormBaseProps = {
+  form: UseFormReturn<ExpenseFormValues, any, ExpenseInput>;
   onSubmit: (input: ExpenseInput) => void;
-  categories: Array<Category>;
+  submitError?: string | null;
+  isSubmitting?: boolean;
 };
 
 type CreateExpenseFormProps = ExpenseFormBaseProps & {
@@ -31,117 +33,97 @@ type CreateExpenseFormProps = ExpenseFormBaseProps & {
 
 type EditExpenseFormProps = ExpenseFormBaseProps & {
   action: "edit";
-  expense: Expense;
 };
 
 type ExpenseFormProps = CreateExpenseFormProps | EditExpenseFormProps;
 
 export function ExpenseForm(props: ExpenseFormProps) {
-  let title = "New Expense";
-  if (props.action === "edit") {
-    title = "Edit Expense";
-  }
-  const { control, formState, handleSubmit } = useForm({
-    defaultValues:
-      props.action === "edit"
-        ? {
-            amount: fromCentToRegularPrice(props.expense.amount),
-            description: props.expense.description,
-            categoryId: props.expense.category.id,
-          }
-        : {
-            amount: undefined,
-            description: "",
-            categoryId: props.categories
-              ? props.categories?.[0]?.id
-              : undefined,
-          },
-    resolver: zodResolver(ExpenseInputSchema),
-  });
+  const title = props.action === "edit" ? "Edit Expense" : "New Expense";
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting: formIsSubmitting },
+  } = props.form;
 
   const onSubmit = handleSubmit((payload) => {
     props.onSubmit(payload);
   });
 
   return (
-    <ThemedView style={PicoLimeStyles.container}>
+    <Screen scroll keyboardAvoiding>
       <HGroup title={title} />
 
-      <Controller
-        name="amount"
+      {props.submitError ? (
+        <Alert type="error" message={props.submitError} />
+      ) : null}
+
+      <FormField
         control={control}
-        render={({ field: { onChange, onBlur, value }, formState }) => {
-          return (
-            <Fieldset>
-              <Label name="Amount" required />
-              <Input
-                placeholder="Amount"
-                inputMode="decimal"
-                onChangeText={onChange}
-                onBlur={onBlur}
-                value={value ? value.toString() : ""}
-                hasError={!!formState.errors.amount}
-                isLoading={formState.isSubmitting}
-              />
-            </Fieldset>
-          );
-        }}
+        name="amount"
+        label="Amount"
+        required
+        variant="amount"
+        placeholder="Amount"
       />
-      <InputError name="amount" errors={formState.errors} />
 
       <Controller
         name="categoryId"
         control={control}
-        render={({ field: { onChange, value }, formState }) => {
-          return (
-            <Fieldset>
-              <Label name="Category" required />
-              <SelectCategory
-                value={value ?? null}
-                onChange={(item) =>
-                  onChange((item as SelectItem)?.value ?? null)
-                }
-                isLoading={formState.isSubmitting}
-              />
-            </Fieldset>
-          );
-        }}
+        render={({ field: { onChange, value } }) => (
+          <Fieldset>
+            <Label name="Category" required />
+            <SelectCategory
+              value={value ?? null}
+              onChange={(item) =>
+                onChange((item as SelectItem)?.value ?? null)
+              }
+              isLoading={formIsSubmitting}
+            />
+          </Fieldset>
+        )}
       />
-      <InputError name="categoryId" errors={formState.errors} />
+      <InputError name="categoryId" errors={errors as Record<string, unknown>} />
 
-      <Controller
+      <FormField
         control={control}
         name="description"
-        render={({ field: { onChange, onBlur, value } }) => {
-          return (
-            <Fieldset>
-              <Label name="Description" />
-              <Input
-                placeholder="Description"
-                autoCapitalize="none"
-                onChangeText={onChange}
-                onBlur={onBlur}
-                value={value ?? ""}
-                isLoading={formState.isSubmitting}
-              />
-            </Fieldset>
-          );
-        }}
+        label="Description"
+        placeholder="Description"
+        autoCapitalize="none"
       />
-      <InputError name="description" errors={formState.errors} />
 
-      <Button onPressIn={onSubmit}>
+      <Button onPressIn={onSubmit} disabled={props.isSubmitting}>
         <ButtonText>
-          {props.action === "create" ? "Create" : "Update"} expense
+          {props.isSubmitting
+            ? "Saving..."
+            : `${props.action === "create" ? "Create" : "Update"} expense`}
         </ButtonText>
       </Button>
-    </ThemedView>
+    </Screen>
   );
 }
 
 export default function CreateExpenseScreen() {
   const router = useRouter();
   const categories = useCategories();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const form = useForm<ExpenseFormValues, any, ExpenseInput>({
+    defaultValues: {
+      amount: undefined,
+      description: "",
+      categoryId: undefined,
+    },
+    resolver: zodResolver(ExpenseInputSchema),
+  });
+
+  useEffect(() => {
+    const firstCategoryId = categories.data?.data?.[0]?.id;
+    if (firstCategoryId !== undefined) {
+      form.setValue("categoryId", firstCategoryId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories.data]);
 
   const mutation = useCreateExpense({
     onSuccess: () => {
@@ -152,9 +134,16 @@ export default function CreateExpenseScreen() {
         },
       });
     },
+    onError: (error) => {
+      applyServerFieldErrors(error, form);
+      setSubmitError(
+        getErrorMessage(error, "Unable to create expense. Please try again."),
+      );
+    },
   });
 
   const onSubmit = (payload: ExpenseInput) => {
+    setSubmitError(null);
     mutation.mutate(payload);
   };
 
@@ -162,11 +151,13 @@ export default function CreateExpenseScreen() {
     return (
       <ExpenseForm
         action="create"
-        categories={categories.data.data}
+        form={form}
         onSubmit={onSubmit}
+        submitError={submitError}
+        isSubmitting={mutation.isPending}
       />
     );
   }
 
-  return <ThemedText>Loading</ThemedText>;
+  return <LoadingState />;
 }

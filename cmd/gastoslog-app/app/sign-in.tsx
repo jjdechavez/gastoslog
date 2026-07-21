@@ -2,34 +2,44 @@ import { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Link, router } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
 import { useSession } from "@/context/session";
 import { HGroup } from "@/components/HGroup";
 import { Input } from "@/components/Input";
 import { Button, ButtonText } from "@/components/Button";
+import { Screen } from "@/components/Screen";
 import { PicoThemeVariables } from "@/styles/pico-lime";
 import { Fieldset } from "@/components/Fieldset";
+import { Alert } from "@/components/Alert";
 
 export default function SignInScreen() {
   const { signIn } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSignin = async () => {
+    setError(null);
+    setIsSubmitting(true);
     const result = await signIn(email, password);
+    setIsSubmitting(false);
 
-    if (result) {
+    if (result.success) {
       router.replace("/(auth)/(tabs)");
+    } else {
+      setError(result.error ?? "Unable to sign in. Please try again.");
     }
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <Screen keyboardAvoiding contentContainerStyle={styles.container}>
       <HGroup
         title="Gastoslog"
         subtitle="Sign In with your account"
         style={styles.hgroup}
       />
+
+      {error ? <Alert type="error" message={error} /> : null}
 
       <Fieldset>
         <Input
@@ -50,8 +60,8 @@ export default function SignInScreen() {
         />
       </Fieldset>
 
-      <Button onPress={handleSignin}>
-        <ButtonText>Sign In</ButtonText>
+      <Button onPress={handleSignin} disabled={isSubmitting}>
+        <ButtonText>{isSubmitting ? "Signing In..." : "Sign In"}</ButtonText>
       </Button>
 
       <View style={styles.footer}>
@@ -62,14 +72,12 @@ export default function SignInScreen() {
           </TouchableOpacity>
         </Link>
       </View>
-    </ThemedView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 20,
     justifyContent: "center",
   },
   hgroup: {

@@ -3,12 +3,18 @@ import { Card } from "@/components/Card";
 import { DatePicker } from "@/components/DatePicker";
 import { HGroup } from "@/components/HGroup";
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView, TScrollView } from "@/components/ThemedView";
+import { ThemedView } from "@/components/ThemedView";
+import { Screen } from "@/components/Screen";
+import { Row } from "@/components/Row";
+import { StatCard } from "@/components/StatCard";
+import { Amount } from "@/components/Amount";
+import { ProgressBar } from "@/components/ProgressBar";
+import { LoadingState, ErrorState, EmptyState } from "@/components/ScreenState";
 import { useOverviewExpense } from "@/services/api-hook/expense";
-import { PicoLimeStyles, PicoThemeVariables } from "@/styles/pico-lime";
+import { PicoThemeVariables } from "@/styles/pico-lime";
 import { ExpenseOverviewResponse } from "@/types/expense";
 import { router, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
+import { StyleSheet, TouchableOpacity } from "react-native";
 
 type Period = "today" | "month" | "year";
 
@@ -47,13 +53,6 @@ const formatDate = (date: Date, period: Period) => {
   }
 
   return date.toLocaleDateString("en-PH", options);
-};
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  }).format(amount);
 };
 
 function PeriodButton(props: { period: Period; label: string }) {
@@ -127,40 +126,26 @@ function TotalOverview() {
   });
 
   if (status === "pending") {
-    return (
-      <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <ThemedText style={styles.loadingText}>Loading overview...</ThemedText>
-      </ThemedView>
-    );
+    return <LoadingState message="Loading overview..." />;
   }
   if (status === "error") {
-    return (
-      <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <ThemedText style={styles.loadingText}>
-          Failed to fetch overview
-        </ThemedText>
-      </ThemedView>
-    );
+    return <ErrorState message="Failed to fetch overview" />;
   }
 
   return (
     <>
       <Card style={styles.summaryCard}>
-        <ThemedView style={styles.summaryRow} variant="card">
-          <ThemedView variant="card">
-            <ThemedText type="subtitle">Total Spent</ThemedText>
-            <ThemedText type="title" style={styles.totalAmount}>
-              {formatCurrency(overview.meta.totalAmount / 100)}
-            </ThemedText>
-          </ThemedView>
-          <ThemedView variant="card">
-            <ThemedText type="subtitle">Total Expenses</ThemedText>
-            <ThemedText type="title">{overview.meta.totalCount}</ThemedText>
-          </ThemedView>
-        </ThemedView>
-        <ThemedText style={styles.dateInfo}>
+        <Row>
+          <StatCard
+            label="Total Spent"
+            value={
+              <Amount type="title" cents={overview.meta.totalAmount} />
+            }
+            valueColor={PicoThemeVariables.primaryBackground}
+          />
+          <StatCard label="Total Expenses" value={overview.meta.totalCount} />
+        </Row>
+        <ThemedText type="caption">
           {getPeriodLabel(selectedPeriod)} of{" "}
           {formatDate(new Date(selectedDate), selectedPeriod)}
         </ThemedText>
@@ -184,69 +169,52 @@ type OverviewByCategoryProps = {
 function OverviewByCategory(props: OverviewByCategoryProps) {
   if (props.overview.data.length === 0) {
     return (
-      <Card style={styles.emptyCard}>
-        <ThemedText style={styles.emptyText}>
-          No expenses found for {getPeriodLabel(props.period).toLowerCase()} of{" "}
-          {formatDate(new Date(props.date), props.period)}
-        </ThemedText>
+      <Card>
+        <EmptyState
+          message={`No expenses found for ${getPeriodLabel(props.period).toLowerCase()} of ${formatDate(new Date(props.date), props.period)}`}
+        />
       </Card>
     );
   }
 
   return props.overview.data.map((category) => (
     <Card key={category.categoryId} style={styles.categoryCard}>
-      <ThemedView style={styles.categoryHeader} variant="card">
-        <ThemedText type="defaultSemiBold" style={styles.categoryName}>
+      <Row style={{ marginBottom: 8 }}>
+        <ThemedText type="defaultSemiBold" style={{ flex: 1 }}>
           {category.categoryName}
         </ThemedText>
-        <ThemedText type="defaultSemiBold" style={styles.categoryAmount}>
-          {formatCurrency(category.totalAmount)}
-        </ThemedText>
-      </ThemedView>
+        <Amount
+          type="defaultSemiBold"
+          tone="primary"
+          cents={category.totalAmount * 100}
+        />
+      </Row>
 
-      <ThemedView style={styles.categoryDetails} variant="card">
-        <ThemedText style={styles.categoryCount}>
+      <Row style={{ marginBottom: 8 }}>
+        <ThemedText type="caption">
           {category.count} expense{category.count !== 1 ? "s" : ""}
         </ThemedText>
-        <ThemedText style={styles.categoryPercentage}>
-          {category.percentage.toFixed(1)}%
-        </ThemedText>
-      </ThemedView>
+        <ThemedText type="caption">{category.percentage.toFixed(1)}%</ThemedText>
+      </Row>
 
-      <ThemedView style={styles.progressBar}>
-        <ThemedView
-          style={[styles.progressFill, { width: `${category.percentage}%` }]}
-        />
-      </ThemedView>
+      <ProgressBar value={category.percentage} height={4} />
     </Card>
   ));
 }
 
 export default function HomeScreen() {
   return (
-    <TScrollView style={PicoLimeStyles.container}>
+    <Screen scroll>
       <HGroup title="Overview" />
 
       <OverviewDatePicker />
       <Periods />
       <TotalOverview />
-    </TScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 16,
-  },
-  header: {
-    marginBottom: 24,
-    gap: 8,
-  },
   periodSelector: {
     flexDirection: "row",
     marginBottom: 24,
@@ -275,66 +243,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     flex: 1,
   },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  totalAmount: {
-    color: PicoThemeVariables.primaryBackground,
-  },
-  categoriesSection: {
-    gap: 12,
-  },
-  sectionTitle: {
-    marginBottom: 8,
-  },
-  emptyCard: {
-    padding: 24,
-    alignItems: "center",
-  },
-  emptyText: {
-    textAlign: "center",
-    opacity: 0.6,
-  },
   categoryCard: {
     marginBottom: 8,
-  },
-  categoryHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  categoryName: {
-    flex: 1,
-  },
-  categoryAmount: {
-    color: PicoThemeVariables.primaryBackground,
-  },
-  categoryDetails: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  categoryCount: {
-    opacity: 0.6,
-    fontSize: 14,
-  },
-  categoryPercentage: {
-    opacity: 0.6,
-    fontSize: 14,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 2,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: PicoThemeVariables.primaryBackground,
-    borderRadius: 2,
   },
   dateSection: {
     marginBottom: 24,
@@ -342,9 +252,5 @@ const styles = StyleSheet.create({
   },
   dateLabel: {
     marginBottom: 8,
-  },
-  dateInfo: {
-    opacity: 0.6,
-    fontSize: 14,
   },
 });

@@ -4,6 +4,7 @@ import (
 	"context"
 	"gastoslog/internal/database"
 	"gastoslog/internal/middleware"
+	"gastoslog/internal/validation"
 	"strconv"
 	"time"
 
@@ -20,11 +21,26 @@ func NewExpenseHandler(expenseRepo database.ExpenseRepository, categoryRepo data
 	return &ExpenseHandler{expenseRepository: expenseRepo, categoryRespository: categoryRepo}
 }
 
+// ensureCategoryOwnership confirms the category exists and belongs to the
+// user. A lookup failure is a 500 (server-side problem); a nonexistent
+// category is a field-scoped 422 pointing at body.categoryId (the caller's
+// input was invalid, not "not found" in the resource sense).
+func (c *ExpenseHandler) ensureCategoryOwnership(ctx context.Context, categoryID, userID int64) error {
+	exists, err := c.categoryRespository.ExistWithUserID(ctx, database.ExistWithUserIDInput{CategoryID: categoryID, UserID: userID})
+	if err != nil {
+		return huma.Error500InternalServerError("Failed to verify category", err)
+	}
+	if !exists {
+		return huma.Error422UnprocessableEntity("Validation failed", validation.NewFieldError("categoryId", "Category not found", categoryID))
+	}
+	return nil
+}
+
 type NewExpenseInput struct {
 	Body struct {
 		Amount      float64 `json:"amount" doc:"Expense amount" minimum:"1"`
 		Description string  `json:"description,omitempty" doc:"Expense description"`
-		CategoryID  int64   `json:"categoryId" doc:"Category ID"`
+		CategoryID  int64   `json:"categoryId" required:"true" doc:"Category ID"`
 	}
 }
 
@@ -40,9 +56,8 @@ func (c *ExpenseHandler) CreateExpense(ctx context.Context, input *NewExpenseInp
 		return nil, err
 	}
 
-	existCategory, err := c.categoryRespository.ExistWithUserID(ctx, database.ExistWithUserIDInput{CategoryID: input.Body.CategoryID, UserID: int64(userID)})
-	if err != nil || !existCategory {
-		return nil, huma.Error404NotFound("Category not found")
+	if err := c.ensureCategoryOwnership(ctx, input.Body.CategoryID, int64(userID)); err != nil {
+		return nil, err
 	}
 
 	amountCents := int64(input.Body.Amount * 100)
@@ -73,10 +88,7 @@ type ListExpenseInput struct {
 type ListExpenseOutput struct {
 	Body struct {
 		Data []ExpenseResponse `json:"data" doc:"List of Expenses"`
-		Meta struct {
-			Page  int `json:"page" doc:"Page number of pagination"`
-			Limit int `json:"limit" doc:"Limit per page of pagination"`
-		} `json:"meta"`
+		Meta PaginationMeta    `json:"meta"`
 	}
 }
 
@@ -118,7 +130,7 @@ func (c *ExpenseHandler) ListExpense(ctx context.Context, input *ListExpenseInpu
 type UpdateExpenseInput struct {
 	ExpenseID string `path:"expenseId" doc:"Expense ID"`
 	Body      struct {
-		CategoryID  int64   `json:"categoryId" doc:"Expense category"`
+		CategoryID  int64   `json:"categoryId" required:"true" doc:"Expense category"`
 		Amount      float64 `json:"amount" minimum:"1"`
 		Description string  `json:"description,omitempty"`
 	}
@@ -136,9 +148,8 @@ func (c *ExpenseHandler) UpdateExpense(ctx context.Context, input *UpdateExpense
 		return nil, err
 	}
 
-	existCategory, err := c.categoryRespository.ExistWithUserID(ctx, database.ExistWithUserIDInput{CategoryID: input.Body.CategoryID, UserID: int64(userID)})
-	if err != nil || !existCategory {
-		return nil, huma.Error404NotFound("Category not found")
+	if err := c.ensureCategoryOwnership(ctx, input.Body.CategoryID, int64(userID)); err != nil {
+		return nil, err
 	}
 
 	expenseID, err := strconv.ParseInt(input.ExpenseID, 10, 64)

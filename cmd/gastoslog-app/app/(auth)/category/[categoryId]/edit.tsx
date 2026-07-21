@@ -1,28 +1,45 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { Controller, useForm } from "react-hook-form";
+import { useForm, type UseFormReturn } from "react-hook-form";
+import { useEffect, useState } from "react";
+import type { z } from "zod/v4";
 
+import { Alert } from "@/components/Alert";
 import { Button, ButtonText } from "@/components/Button";
-import { Fieldset, Label } from "@/components/Fieldset";
 import { HGroup } from "@/components/HGroup";
-import { Input, InputError } from "@/components/Input";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import { FormField } from "@/components/FormField";
+import { LoadingState } from "@/components/ScreenState";
+import { Screen } from "@/components/Screen";
 import {
   categoryKeys,
   useCategory,
   useUpdateCategory,
 } from "@/services/api-hook/category";
-import { PicoLimeStyles } from "@/styles/pico-lime";
-import { CategoryInputSchema, type Category, type CategoryInput } from "@/types/category";
+import { applyServerFieldErrors, getErrorMessage } from "@/services/errors";
+import { CategoryInputSchema, type CategoryInput } from "@/types/category";
 import { useLocalSearchParams, useRouter } from "expo-router";
+
+export type CategoryFormValues = z.input<typeof CategoryInputSchema>;
 
 export default function EditCategoryScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { categoryId } = useLocalSearchParams();
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { data, status } = useCategory(categoryId as string);
+
+  const form = useForm<CategoryFormValues, any, CategoryInput>({
+    defaultValues: { name: "", description: "" },
+    resolver: zodResolver(CategoryInputSchema),
+  });
+
+  useEffect(() => {
+    if (data?.data) {
+      form.reset({ name: data.data.name, description: data.data.description });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.data]);
 
   const mutation = useUpdateCategory(categoryId as string, {
     onSuccess: (updatedCategory) => {
@@ -31,29 +48,45 @@ export default function EditCategoryScreen() {
         updatedCategory,
       );
       router.push({
-        pathname: "/(auth)/(tabs)/category",
+        pathname: "/(auth)/category",
         params: {
           success: "Changes were successfully saved!",
         },
       });
     },
+    onError: (error) => {
+      applyServerFieldErrors(error, form);
+      setSubmitError(
+        getErrorMessage(error, "Unable to update category. Please try again."),
+      );
+    },
   });
 
   const onSubmit = (input: CategoryInput) => {
+    setSubmitError(null);
     mutation.mutate(input);
   };
 
   if (status === "success") {
     return (
-      <CategoryForm action="edit" category={data.data} onSubmit={onSubmit} />
+      <CategoryForm
+        action="edit"
+        form={form}
+        onSubmit={onSubmit}
+        submitError={submitError}
+        isSubmitting={mutation.isPending}
+      />
     );
   }
 
-  return <ThemedText>Loading</ThemedText>;
+  return <LoadingState />;
 }
 
 type CategoryFormBaseProps = {
+  form: UseFormReturn<CategoryFormValues, any, CategoryInput>;
   onSubmit: (input: CategoryInput) => void;
+  submitError?: string | null;
+  isSubmitting?: boolean;
 };
 
 type CreateCategoryFormProps = CategoryFormBaseProps & {
@@ -62,84 +95,51 @@ type CreateCategoryFormProps = CategoryFormBaseProps & {
 
 type EditCategoryFormProps = CategoryFormBaseProps & {
   action: "edit";
-  category: Category;
 };
 
 type CategoryFormProps = CreateCategoryFormProps | EditCategoryFormProps;
 
 export function CategoryForm(props: CategoryFormProps) {
-  let title = "New Category";
-  if (props.action === "edit") {
-    title = "Edit Category";
-  }
+  const title = props.action === "edit" ? "Edit Category" : "New Category";
 
-  const { control, formState, handleSubmit } = useForm({
-    defaultValues:
-      props.action === "edit"
-        ? { name: props.category.name, description: props.category.description }
-        : {
-            name: "",
-            description: "",
-          },
-    resolver: zodResolver(CategoryInputSchema),
-  });
+  const { control, handleSubmit } = props.form;
 
   const onSubmit = handleSubmit((payload) => {
     props.onSubmit(payload);
   });
 
   return (
-    <ThemedView style={PicoLimeStyles.container}>
+    <Screen scroll keyboardAvoiding>
       <HGroup title={title} />
 
-      <Controller
-        name="name"
-        control={control}
-        render={({ field: { onChange, onBlur, value }, formState }) => {
-          return (
-            <Fieldset>
-              <Label name="Name" required />
-              <Input
-                placeholder="Name"
-                autoCapitalize="none"
-                onChangeText={onChange}
-                onBlur={onBlur}
-                value={value}
-                hasError={!!formState.errors.name}
-                isLoading={formState.isSubmitting}
-              />
-            </Fieldset>
-          );
-        }}
-      />
-      <InputError name="name" errors={formState.errors} />
+      {props.submitError ? (
+        <Alert type="error" message={props.submitError} />
+      ) : null}
 
-      <Controller
+      <FormField
+        control={control}
+        name="name"
+        label="Name"
+        required
+        placeholder="Name"
+        autoCapitalize="none"
+      />
+
+      <FormField
         control={control}
         name="description"
-        render={({ field: { onChange, onBlur, value } }) => {
-          return (
-            <Fieldset>
-              <Label name="Description" />
-              <Input
-                placeholder="Description"
-                autoCapitalize="none"
-                onChangeText={onChange}
-                onBlur={onBlur}
-                value={value ?? ""}
-                isLoading={formState.isSubmitting}
-              />
-            </Fieldset>
-          );
-        }}
+        label="Description"
+        placeholder="Description"
+        autoCapitalize="none"
       />
-      <InputError name="description" errors={formState.errors} />
 
-      <Button onPressIn={onSubmit}>
+      <Button onPressIn={onSubmit} disabled={props.isSubmitting}>
         <ButtonText>
-          {props.action === "create" ? "Create" : "Update"} category
+          {props.isSubmitting
+            ? "Saving..."
+            : `${props.action === "create" ? "Create" : "Update"} category`}
         </ButtonText>
       </Button>
-    </ThemedView>
+    </Screen>
   );
 }

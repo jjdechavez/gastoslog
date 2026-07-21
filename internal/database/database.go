@@ -26,6 +26,8 @@ type Service interface {
 	UserRepository() UserRepository
 	CategoryRepository() CategoryRepository
 	ExpenseRepository() ExpenseRepository
+	TargetRepository() TargetRepository
+	TargetLogRepository() TargetLogRepository
 }
 
 type service struct {
@@ -130,6 +132,14 @@ func (s *service) ExpenseRepository() ExpenseRepository {
 	return NewExpenseRepository(s.db)
 }
 
+func (s *service) TargetRepository() TargetRepository {
+	return NewTargetRepository(s.db)
+}
+
+func (s *service) TargetLogRepository() TargetLogRepository {
+	return NewTargetLogRepository(s.db)
+}
+
 func initializeSchema(db *sqlx.DB) {
 	userSchema := `-- Users table stores user account information
 	CREATE TABLE IF NOT EXISTS users (
@@ -199,5 +209,57 @@ func initializeSchema(db *sqlx.DB) {
 	_, err = db.Exec(expenseSchema)
 	if err != nil {
 		log.Fatalf("Failed to initialize expenses table: %v", err)
+	}
+
+	targetSchema := `-- Target table for user-specific expense records
+	CREATE TABLE IF NOT EXISTS targets (
+		id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER NOT NULL,
+		name TEXT NOT NULL,
+		target_amount INTEGER NOT NULL,
+		type TEXT NOT NULL,
+		direction TEXT NOT NULL,
+		status TEXT NOT NULL,
+		deadline_at DATETIME,
+		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		deleted_at DATETIME,
+		CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_targets_user_id ON targets (user_id);
+	CREATE INDEX IF NOT EXISTS idx_targets_type ON targets (type);
+	CREATE INDEX IF NOT EXISTS idx_targets_direction ON targets (direction);
+	CREATE INDEX IF NOT EXISTS idx_targets_created_at ON targets  (created_at);
+	CREATE INDEX IF NOT EXISTS idx_targets_deleted_at ON targets (deleted_at);`
+
+	_, err = db.Exec(targetSchema)
+	if err != nil {
+		log.Fatalf("Failed to initialize targets table: %v", err)
+	}
+
+	targetLogsSchema := `-- Target Logs table for user-specific expense records
+	CREATE TABLE IF NOT EXISTS target_logs (
+		id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER NOT NULL,
+		target_id INTEGER NOT NULL,
+		amount INTEGER NOT NULL,
+		notes TEXT,
+		entry_date DATETIME NOT NULL,
+		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		deleted_at DATETIME,
+		CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+		CONSTRAINT fk_target FOREIGN KEY (target_id) REFERENCES targets(id) ON DELETE CASCADE
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_target_logs_user_id ON target_logs (user_id);
+	CREATE INDEX IF NOT EXISTS idx_target_logs_target_id ON target_logs (target_id);
+	CREATE INDEX IF NOT EXISTS idx_target_logs_created_at ON target_logs (created_at);
+	CREATE INDEX IF NOT EXISTS idx_target_logs_deleted_at ON target_logs (deleted_at);`
+
+	_, err = db.Exec(targetLogsSchema)
+	if err != nil {
+		log.Fatalf("Failed to initialize target logs table: %v", err)
 	}
 }

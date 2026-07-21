@@ -7,24 +7,27 @@ import {
 import { ThemedText, ThemedTextProps } from "./ThemedText";
 import { PicoThemeVariables } from "@/styles/pico-lime";
 
-export function Button(props: TouchableOpacityProps) {
+export function Button({ style, ...props }: TouchableOpacityProps) {
   return (
     <TouchableOpacity
-      style={{
-        margin: 0,
-        overflow: "visible",
-        paddingVertical: PicoThemeVariables.formElementSpacingVertical,
-        paddingHorizontal: PicoThemeVariables.formElementSpacingVertical,
+      style={[
+        {
+          margin: 0,
+          overflow: "visible",
+          paddingVertical: PicoThemeVariables.formElementSpacingVertical,
+          paddingHorizontal: PicoThemeVariables.formElementSpacingVertical,
 
-        borderWidth: PicoThemeVariables.borderWidth,
-        borderStyle: "solid",
-        borderColor: PicoThemeVariables.primaryInverse,
-        borderRadius: PicoThemeVariables.borderRadius,
+          borderWidth: PicoThemeVariables.borderWidth,
+          borderStyle: "solid",
+          borderColor: PicoThemeVariables.primaryInverse,
+          borderRadius: PicoThemeVariables.borderRadius,
 
-        outline: "none",
-        backgroundColor: PicoThemeVariables.primaryBackground,
-        boxShadow: "0 0 0 rgba(0, 0, 0, 0)",
-      }}
+          outline: "none",
+          backgroundColor: PicoThemeVariables.primaryBackground,
+          boxShadow: "0 0 0 rgba(0, 0, 0, 0)",
+        },
+        style,
+      ]}
       {...props}
     >
       {props.children}
