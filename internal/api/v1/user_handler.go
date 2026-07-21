@@ -62,7 +62,7 @@ type SignInOutput struct {
 func (h *UserHandler) SignIn(ctx context.Context, input *SignInInput) (*SignInOutput, error) {
 	user, err := h.userService.SignIn(ctx, input.Body.Email, input.Body.Password)
 	if err != nil {
-		return nil, err
+		return nil, huma.Error401Unauthorized("Invalid credentials", err)
 	}
 
 	resp := &SignInOutput{}
