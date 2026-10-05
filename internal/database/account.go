@@ -45,7 +45,7 @@ func (r *userRepository) Create(ctx context.Context, email, password, role strin
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, email_verified_at, created_at, updated_at, last_login_at`
 
-	now := time.Now()
+	now := now()
 	assignedRole := "user"
 
 	if role == "" {
@@ -105,7 +105,7 @@ func (r *userRepository) Update(ctx context.Context, user *User) error {
 			updated_at = $3
 		WHERE id = $4`
 
-	user.UpdatedAt = time.Now()
+	user.UpdatedAt = now()
 	_, err := r.db.ExecContext(ctx, query,
 		user.Email, user.Role, user.UpdatedAt, user.ID,
 	)
@@ -120,13 +120,13 @@ func (r *userRepository) UpdatePassword(ctx context.Context, id int64, newPasswo
 		WHERE id = $3`
 
 	_, err := r.db.ExecContext(ctx, query,
-		newPassword, time.Now(), id,
+		newPassword, now(), id,
 	)
 	return err
 }
 
 func (r *userRepository) UpdateLastLogin(ctx context.Context, id int64) error {
-	now := time.Now()
+	now := now()
 	query := `
 		UPDATE users 
 		SET last_login_at = $1
@@ -137,7 +137,7 @@ func (r *userRepository) UpdateLastLogin(ctx context.Context, id int64) error {
 }
 
 func (r *userRepository) VerifyEmail(ctx context.Context, id int64) error {
-	now := time.Now()
+	now := now()
 	query := `
 		UPDATE users 
 		SET email_verified_at = $1,

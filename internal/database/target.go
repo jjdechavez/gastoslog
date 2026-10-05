@@ -76,7 +76,7 @@ func (r *targetRepository) Create(ctx context.Context, input NewTargetInput) (*T
 		RETURNING id, user_id, name, target_amount, type, direction, status, deadline_at, created_at, updated_at
 	`
 
-	now := time.Now()
+	now := now()
 
 	target := &Target{
 		UserID:       input.UserID,
@@ -152,7 +152,7 @@ func (r *targetRepository) Update(ctx context.Context, updateWith UpdateTargetIn
 			updated_at = $7
 		WHERE id = $8 AND user_id = $9`
 
-	now := time.Now()
+	now := now()
 	name := ""
 	if updateWith.Name != "" {
 		name = updateWith.Name
@@ -165,7 +165,7 @@ func (r *targetRepository) Update(ctx context.Context, updateWith UpdateTargetIn
 }
 
 func (r *targetRepository) Delete(ctx context.Context, id int64) error {
-	now := time.Now()
+	now := now()
 	query := `
 		UPDATE targets
 		SET deleted_at = $1

@@ -50,7 +50,7 @@ func (r *categoryRepository) Create(ctx context.Context, input NewCategoryInput)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, user_id, name, description, created_at, updated_at, deleted_at`
 
-	now := time.Now()
+	now := now()
 
 	category := &Category{
 		UserID:      input.UserID,
@@ -99,7 +99,7 @@ func (r *categoryRepository) Update(ctx context.Context, updateWith UpdateCatego
 			updated_at = $3
 		WHERE id = $4 AND user_id = $5`
 
-	now := time.Now()
+	now := now()
 	_, err := r.db.ExecContext(ctx, query,
 		updateWith.Name, updateWith.Description, now, updateWith.CategoryID, updateWith.UserID,
 	)
@@ -107,7 +107,7 @@ func (r *categoryRepository) Update(ctx context.Context, updateWith UpdateCatego
 }
 
 func (r *categoryRepository) Delete(ctx context.Context, id int64) error {
-	now := time.Now()
+	now := now()
 	query := `
 		UPDATE categories
 		SET deleted_at = $1

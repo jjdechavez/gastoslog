@@ -119,7 +119,7 @@ func (r *targetLogRepository) Update(ctx context.Context, updateWith UpdateTarge
 			updated_at = $4
 		WHERE id = $5 AND user_id = $6`
 
-	now := time.Now()
+	now := now()
 
 	_, err := r.db.ExecContext(ctx, query,
 		int64(updateWith.Amount*100), updateWith.Notes.ValueOr(""), updateWith.EntryDate, now, updateWith.TargetLogID, updateWith.UserID,
@@ -128,7 +128,7 @@ func (r *targetLogRepository) Update(ctx context.Context, updateWith UpdateTarge
 }
 
 func (r *targetLogRepository) Delete(ctx context.Context, id int64) error {
-	now := time.Now()
+	now := now()
 	query := `
 		UPDATE target_logs
 		SET deleted_at = $1

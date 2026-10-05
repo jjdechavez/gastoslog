@@ -188,6 +188,16 @@ func (s *Server) RegisterRoutes() http.Handler {
 		Security:    bearerSecurity,
 	}, expenseHandler.GetExpenseOverview)
 
+	huma.Register(apiV1, huma.Operation{
+		OperationID: "expense-summary",
+		Method:      http.MethodGet,
+		Path:        "/expenses/summary",
+		Summary:     "Summarize expenses matching a filter",
+		Description: "Total amount (cents) and count for the expenses matching the same filter params as expense-list.",
+		Tags:        []string{"Expense"},
+		Security:    bearerSecurity,
+	}, expenseHandler.GetExpenseSummary)
+
 	targetService := target.NewService(s.db.TargetRepository(), s.db.TargetLogRepository())
 	targetHandler := v1.NewTargetHandler(targetService)
 

@@ -204,7 +204,12 @@ func initializeSchema(db *sqlx.DB) {
 	CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses (user_id);
 	CREATE INDEX IF NOT EXISTS idx_expenses_category_id ON expenses (category_id);
 	CREATE INDEX IF NOT EXISTS idx_expenses_created_at ON expenses (created_at);
-	CREATE INDEX IF NOT EXISTS idx_expenses_deleted_at ON expenses (deleted_at);`
+	CREATE INDEX IF NOT EXISTS idx_expenses_deleted_at ON expenses (deleted_at);
+	-- Composite to cover the dominant expense query shape in one pass: scope to
+	-- a user, order/scan by created_at. The single-column indexes above can't
+	-- serve "this user's expenses in a date range, newest first" — SQLite would
+	-- pick one index and either sort or filter.
+	CREATE INDEX IF NOT EXISTS idx_expenses_user_created ON expenses (user_id, created_at);`
 
 	_, err = db.Exec(expenseSchema)
 	if err != nil {
@@ -261,5 +266,72 @@ func initializeSchema(db *sqlx.DB) {
 	_, err = db.Exec(targetLogsSchema)
 	if err != nil {
 		log.Fatalf("Failed to initialize target logs table: %v", err)
+	}
+
+	normalizeTimestamps(db)
+}
+
+// timestampColumns are the DATETIME columns that get normalised, per table.
+//
+// deleted_at is included: a soft-deleted row's timestamp still sorts
+// inconsistently with UTC rows, and the WHERE guard leaves NULLs alone, so it
+// needs the same treatment as the live columns.
+var timestampColumns = map[string][]string{
+	"users":       {"created_at", "updated_at", "email_verified_at", "last_login_at"},
+	"categories":  {"created_at", "updated_at", "deleted_at"},
+	"expenses":    {"created_at", "updated_at", "deleted_at"},
+	"targets":     {"created_at", "updated_at", "deadline_at", "deleted_at"},
+	"target_logs": {"created_at", "updated_at", "deleted_at"},
+}
+
+// normalizeTimestamps rewrites any stored timestamp that still carries a
+// non-zero UTC offset into the equivalent UTC instant.
+//
+// Rows written before now() returned UTC were serialised with the server's local
+// offset (e.g. "2025-05-05 13:55:27.750388+08:00"). SQLite compares DATETIME
+// values as text, so those strings sorted by their wall-clock digits rather than
+// by instant — which put late-evening expenses on the wrong day in range filters
+// and broke the chronological ordering the indexes assume.
+//
+// The rewrite is idempotent (already-UTC values are unchanged) and preserves the
+// instant exactly; only the textual representation changes. It runs at startup
+// and is a no-op once the data is clean.
+func normalizeTimestamps(db *sqlx.DB) {
+	for table, columns := range timestampColumns {
+		for _, column := range columns {
+			// A stored value is off-UTC when it ends in an offset other than
+			// +00:00. Written as an explicit suffix test rather than a numeric
+			// one so a value that isn't parseable as a timestamp is never
+			// touched.
+			nonUTC := fmt.Sprintf(
+				"(%[1]s IS NOT NULL AND (substr(%[1]s, -6) <> '+00:00' AND (substr(%[1]s, -6) LIKE '+__:__' OR substr(%[1]s, -6) LIKE '-__:__')))",
+				column,
+			)
+
+			// strftime resolves an offset-aware value to its UTC instant on its
+			// own — no 'utc_offset' modifier is needed, and passing one yields
+			// NULL. The literal +00:00 suffix marks the result as UTC so
+			// lexicographic order matches chronological order, and %S (not %f)
+			// keeps the output identical to what a fresh write produces, since
+			// go-sqlite3's layout omits an all-zero fractional part.
+			stmt := fmt.Sprintf(`
+				UPDATE %s
+				SET %s = strftime('%%Y-%%m-%%d %%H:%%M:%%S+00:00', %[2]s)
+				WHERE %[3]s
+			`, table, column, column, nonUTC)
+
+			result, err := db.Exec(stmt)
+			if err != nil {
+				// A failure means the data can't be normalised, so range filters
+				// may be off for pre-existing rows. Log and continue — the app
+				// still needs to start.
+				log.Printf("Warning: could not normalize %s.%s to UTC: %v", table, column, err)
+				continue
+			}
+
+			if affected, err := result.RowsAffected(); err == nil && affected > 0 {
+				log.Printf("Normalized %d row(s) in %s.%s to UTC", affected, table, column)
+			}
+		}
 	}
 }

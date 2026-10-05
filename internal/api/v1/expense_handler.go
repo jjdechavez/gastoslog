@@ -2,10 +2,11 @@ package v1
 
 import (
 	"context"
+	"strconv"
+
 	"gastoslog/internal/database"
 	"gastoslog/internal/middleware"
 	"gastoslog/internal/validation"
-	"strconv"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -78,11 +79,59 @@ func (c *ExpenseHandler) CreateExpense(ctx context.Context, input *NewExpenseInp
 	return resp, nil
 }
 
+const expenseDateLayout = "2006-01-02"
+
+// parseExpenseFilter turns query params into a database filter.
+//
+// `date` is a deprecated single-day alias kept so older clients keep working;
+// when present it wins over from/to, since an exact day is the more specific
+// request. Shared by ListExpense and GetExpenseSummary so the two endpoints
+// cannot disagree about what a set of filter params means.
+func parseExpenseFilter(from, to, date string, category []int64) (database.ExpenseFilter, error) {
+	if date != "" {
+		from, to = date, date
+	}
+
+	filter := database.ExpenseFilter{Category: category}
+
+	if from != "" {
+		parsed, err := time.Parse(expenseDateLayout, from)
+		if err != nil {
+			return filter, huma.Error400BadRequest("Invalid 'from' date format. Use YYYY-MM-DD")
+		}
+		filter.From = &parsed
+	}
+
+	if to != "" {
+		parsed, err := time.Parse(expenseDateLayout, to)
+		if err != nil {
+			return filter, huma.Error400BadRequest("Invalid 'to' date format. Use YYYY-MM-DD")
+		}
+		filter.To = &parsed
+	}
+
+	// An inverted range matches nothing. Reject it rather than return an empty
+	// list, which would read as "no expenses in this period" instead of
+	// "this filter is invalid".
+	if filter.From != nil && filter.To != nil && filter.To.Before(*filter.From) {
+		return filter, huma.Error400BadRequest("'to' date must not be earlier than 'from'")
+	}
+
+	return filter, nil
+}
+
 type ListExpenseInput struct {
-	Page     int     `query:"page" default:"1" doc:"Page number of pagination"`
-	Limit    int     `query:"limit" default:"10" doc:"Limit per page of pagination"`
-	Date     string  `query:"date" doc:"Filter date for expense (YYYY-MM-DD format)"`
-	Category []int64 `query:"category" doc:"Filter category"`
+	Page  int    `query:"page" default:"1" doc:"Page number of pagination"`
+	Limit int    `query:"limit" default:"10" doc:"Limit per page of pagination"`
+	From  string `query:"from" doc:"Filter expenses created on or after this date (YYYY-MM-DD format, inclusive)"`
+	To    string `query:"to" doc:"Filter expenses created on or before this date (YYYY-MM-DD format, inclusive)"`
+	// Deprecated: single-day alias for from+to. Prefer from/to.
+	Date string `query:"date" doc:"Deprecated: filter a single day (YYYY-MM-DD). Use from+to instead."`
+	// NB: huma parses []int64 query params from a single comma-separated value
+	// ("category=9,10"), NOT from repeated params. Repeating the key
+	// ("category=9&category=10") is silently reduced to the first value even
+	// though the generated OpenAPI implies otherwise — which fails quietly.
+	Category []int64 `query:"category" doc:"Filter category, as comma-separated ids (e.g. category=9,10)"`
 }
 
 type ListExpenseOutput struct {
@@ -98,21 +147,16 @@ func (c *ExpenseHandler) ListExpense(ctx context.Context, input *ListExpenseInpu
 		return nil, err
 	}
 
-	var date *time.Time
-	if input.Date != "" {
-		parsedDate, err := time.Parse("2006-01-02", input.Date)
-		if err != nil {
-			return nil, huma.Error400BadRequest("Invalid date format. Use YYYY-MM-DD")
-		}
-		date = &parsedDate
+	filter, err := parseExpenseFilter(input.From, input.To, input.Date, input.Category)
+	if err != nil {
+		return nil, err
 	}
 
 	list, err := c.expenseRepository.List(ctx, database.ListExpenseInput{
-		UserID:   int64(userID),
-		Page:     input.Page,
-		Limit:    input.Limit,
-		Date:     date,
-		Category: input.Category,
+		UserID:        int64(userID),
+		Page:          input.Page,
+		Limit:         input.Limit,
+		ExpenseFilter: filter,
 	})
 
 	if err != nil {
@@ -123,6 +167,52 @@ func (c *ExpenseHandler) ListExpense(ctx context.Context, input *ListExpenseInpu
 	resp.Body.Data = toExpenseResponseList(list)
 	resp.Body.Meta.Page = input.Page
 	resp.Body.Meta.Limit = input.Limit
+
+	return resp, nil
+}
+
+type ExpenseSummaryInput struct {
+	From string `query:"from" doc:"Filter expenses created on or after this date (YYYY-MM-DD format, inclusive)"`
+	To   string `query:"to" doc:"Filter expenses created on or before this date (YYYY-MM-DD format, inclusive)"`
+	// Deprecated: single-day alias for from+to. Prefer from/to.
+	Date string `query:"date" doc:"Deprecated: filter a single day (YYYY-MM-DD). Use from+to instead."`
+	// Comma-separated ids — see the note on ListExpenseInput.Category.
+	Category []int64 `query:"category" doc:"Filter category, as comma-separated ids (e.g. category=9,10)"`
+}
+
+type ExpenseSummaryOutput struct {
+	Body struct {
+		// Cents, matching the expense list's amount field. Note the older
+		// /expenses/overview endpoint returns its per-category rows in pesos —
+		// don't copy that convention here.
+		TotalAmount int64 `json:"totalAmount" doc:"Sum of matching expense amounts, in cents"`
+		TotalCount  int64 `json:"totalCount" doc:"Number of matching expenses"`
+	}
+}
+
+// GetExpenseSummary totals the expenses matching the given filter. Takes the
+// same filter params as ListExpense and covers exactly the same set of rows,
+// but aggregates in SQL — a client summing the pages it has loaded would only
+// total what it happens to have scrolled through.
+func (c *ExpenseHandler) GetExpenseSummary(ctx context.Context, input *ExpenseSummaryInput) (*ExpenseSummaryOutput, error) {
+	userID, err := middleware.GetContextUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	filter, err := parseExpenseFilter(input.From, input.To, input.Date, input.Category)
+	if err != nil {
+		return nil, err
+	}
+
+	total, err := c.expenseRepository.Sum(ctx, int64(userID), filter)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("Failed to summarize expenses", err)
+	}
+
+	resp := &ExpenseSummaryOutput{}
+	resp.Body.TotalAmount = total.TotalAmount
+	resp.Body.TotalCount = total.TotalCount
 
 	return resp, nil
 }
@@ -259,6 +349,9 @@ func (c *ExpenseHandler) DetailExpense(ctx context.Context, input *DetailExpense
 	return resp, nil
 }
 
+// The "today" period resolves a single UTC day. period=today&date=<YYYY-MM-DD>
+// therefore means "the whole of that calendar day", which matches how the
+// expense list's from/to pair behaves for a one-day range.
 type ExpenseOverviewInput struct {
 	Period string `query:"period" enum:"today,month,year" default:"today" doc:"Period for overview (today, month, year)"`
 	Date   string `query:"date" doc:"Custom date for overview (YYYY-MM-DD format)"`
@@ -322,15 +415,21 @@ func (c *ExpenseHandler) GetExpenseOverview(ctx context.Context, input *ExpenseO
 		responses[i] = CategoryExpenseOverviewResponse{
 			CategoryID:   overview.CategoryID,
 			CategoryName: overview.CategoryName,
-			TotalAmount:  float64(overview.TotalAmount) / 100, // Convert cents to dollars
-			Count:        overview.Count,
-			Percentage:   percentage,
+			// Per-category totals are reported in pesos while OverviewMeta.TotalAmount
+			// stays in cents (see ExpenseTotal). The client compensates by
+			// re-multiplying here (index.tsx), which is a genuine inconsistency —
+			// not copied into /expenses/summary, which is cents throughout.
+			TotalAmount: float64(overview.TotalAmount) / 100,
+			Count:       overview.Count,
+			Percentage:  percentage,
 		}
 	}
 
 	resp := &ExpenseOverviewOutput{}
 	resp.Body.Data = responses
 	resp.Body.OverviewMeta.Period = input.Period
+	// Cents — matches Expense.Amount and /expenses/summary, unlike the
+	// per-category rows above which are pesos.
 	resp.Body.OverviewMeta.TotalAmount = totalAmount
 	resp.Body.OverviewMeta.TotalCount = totalCount
 
@@ -348,10 +447,19 @@ type ExpenseResponse struct {
 }
 
 func toExpenseResponse(expense database.RawExpense) ExpenseResponse {
+	// CategoryResponse.Description is a plain string, so an absent category
+	// description becomes "" rather than null — matching how the list endpoint
+	// reports it and keeping the client's zod schema (.optional().nullable())
+	// satisfied either way.
+	categoryDescription := ""
+	if expense.CategoryDescription.Valid {
+		categoryDescription = expense.CategoryDescription.String
+	}
+
 	category := &CategoryResponse{
 		ID:          expense.CategoryID,
 		Name:        expense.CategoryName,
-		Description: expense.CategoryDescription,
+		Description: categoryDescription,
 		CreatedAt:   expense.CategoryCreatedAt,
 		UpdatedAt:   expense.CategoryUpdatedAt,
 	}
