@@ -1,7 +1,7 @@
 import { api } from "@/services/api";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import Select, { type SelectItem } from "./Select";
+import Select, { type SelectItem, type SelectProps } from "./Select";
 import { ThemedText } from "./ThemedText";
 import { categoryKeys } from "@/services/api-hook/category";
 
@@ -10,6 +10,8 @@ type SelectCategoryProps = {
   onChange?: (item: SelectItem | SelectItem[] | null) => void;
   isLoading?: boolean;
   multiple?: boolean;
+  /** Forwards to Select so the trigger can be a compact chip. */
+  renderTrigger?: SelectProps["renderTrigger"];
 };
 
 export function SelectCategory(props: SelectCategoryProps) {
@@ -71,6 +73,7 @@ export function SelectCategory(props: SelectCategoryProps) {
       renderEmpty={() => <ThemedText>No results</ThemedText>}
       renderError={() => <ThemedText>Failed to load</ThemedText>}
       multiple={props.multiple}
+      renderTrigger={props.renderTrigger}
     />
   );
 }

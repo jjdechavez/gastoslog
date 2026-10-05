@@ -47,6 +47,16 @@ export type SelectProps<TItem extends SelectItem = SelectItem> = {
   // Optional search input (uncontrolled internal state)
   searchable?: boolean;
   onSearchChange?: (text: string) => void;
+
+  // Optional replacement for the default full-width trigger, for placing the
+  // select inside a compact chip row. Receives the already-resolved summary
+  // label ("Food, Bills +2") so the caller doesn't re-derive it. Defaults to the
+  // standard form-element trigger when omitted.
+  renderTrigger?: (args: {
+    label: string;
+    onPress: () => void;
+    disabled?: boolean;
+  }) => React.ReactNode;
 };
 
 export function Select<TItem extends SelectItem = SelectItem>(
@@ -70,6 +80,7 @@ export function Select<TItem extends SelectItem = SelectItem>(
     error,
     searchable,
     onSearchChange,
+    renderTrigger,
   } = props;
 
   const [open, setOpen] = useState(false);
@@ -265,31 +276,39 @@ export function Select<TItem extends SelectItem = SelectItem>(
     return `${labels.slice(0, 2).join(", ")} +${labels.length - 2}`;
   }, [multiple, selectedItem, selectedItems, placeholder, renderItemLabel]);
 
+  const openSheet = () => setOpen(true);
+
+  const trigger = renderTrigger ? (
+    renderTrigger({ label: selectedSummary, onPress: openSheet, disabled })
+  ) : (
+    <Pressable
+      disabled={disabled}
+      onPress={openSheet}
+      style={{
+        marginBottom: PicoThemeVariables.spacing,
+        paddingVertical: PicoThemeVariables.formElementSpacingVertical,
+        paddingHorizontal: PicoThemeVariables.formElementSpacingHorizontal,
+        width: "100%",
+        height:
+          16 * PicoThemeVariables.lineHeight +
+          PicoThemeVariables.formElementSpacingVertical * 2 +
+          PicoThemeVariables.borderWidth * 2,
+        borderWidth: PicoThemeVariables.borderWidth,
+        borderStyle: "solid",
+        borderColor,
+        borderRadius: PicoThemeVariables.borderRadius,
+        backgroundColor,
+        boxShadow: "none" as any,
+        justifyContent: "center",
+      }}
+    >
+      <ThemedText style={{ color }}>{selectedSummary}</ThemedText>
+    </Pressable>
+  );
+
   return (
     <>
-      <Pressable
-        disabled={disabled}
-        onPress={() => setOpen(true)}
-        style={{
-          marginBottom: PicoThemeVariables.spacing,
-          paddingVertical: PicoThemeVariables.formElementSpacingVertical,
-          paddingHorizontal: PicoThemeVariables.formElementSpacingHorizontal,
-          width: "100%",
-          height:
-            16 * PicoThemeVariables.lineHeight +
-            PicoThemeVariables.formElementSpacingVertical * 2 +
-            PicoThemeVariables.borderWidth * 2,
-          borderWidth: PicoThemeVariables.borderWidth,
-          borderStyle: "solid",
-          borderColor,
-          borderRadius: PicoThemeVariables.borderRadius,
-          backgroundColor,
-          boxShadow: "none" as any,
-          justifyContent: "center",
-        }}
-      >
-        <ThemedText style={{ color }}>{selectedSummary}</ThemedText>
-      </Pressable>
+      {trigger}
 
       <Modal
         visible={open}

@@ -151,7 +151,10 @@ export function registerMutationDefaults(queryClient: QueryClient) {
       // server row. Harmless while offline — it just marks the queries stale
       // for the next time they're fetched.
       queryClient.invalidateQueries({ queryKey: expenseKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: ["expense", "overview"] });
+      // The filtered total and the overview are aggregates over expenses, so a
+      // new expense changes both. This replaces a hand-rolled
+      // ["expense","overview"] key that no factory owned.
+      queryClient.invalidateQueries({ queryKey: expenseKeys.summaries() });
     },
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),

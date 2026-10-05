@@ -17,7 +17,12 @@ export type UseQueryOptionsWrapper<
   "queryKey" | "queryFn" | "select" | "refetchInterval"
 >;
 
-export type TQueryKey<TKey, TListQuery = any, TDetailQuery = string> = {
+export type TQueryKey<
+  TKey,
+  TListQuery = any,
+  TDetailQuery = string,
+  TSummaryQuery = any,
+> = {
   all: [TKey];
   lists: () => [...TQueryKey<TKey>["all"], "list"];
   list: (
@@ -30,21 +35,43 @@ export type TQueryKey<TKey, TListQuery = any, TDetailQuery = string> = {
   detail: (
     id: TDetailQuery,
   ) => [...ReturnType<TQueryKey<TKey>["details"]>, TDetailQuery];
+  // Aggregates that are derived from a filter rather than a page of rows. Kept
+  // in their own namespace ("summary") and built from the filter alone, so
+  // paginating or scrolling never invalidates them and a stale total can't be
+  // mistaken for a fresh one.
+  summaries: () => [...TQueryKey<TKey>["all"], "summary"];
+  summary: (
+    query?: TSummaryQuery,
+  ) => [
+    ...ReturnType<TQueryKey<TKey>["summaries"]>,
+    { query: TSummaryQuery | undefined },
+  ];
 };
 
 export const queryKeysFactory = <
   T,
   TListQueryType = any,
   TDetailQueryType = string,
+  TSummaryQueryType = any,
 >(
   globalKey: T,
 ) => {
-  const queryKeyFactory: TQueryKey<T, TListQueryType, TDetailQueryType> = {
+  const queryKeyFactory: TQueryKey<
+    T,
+    TListQueryType,
+    TDetailQueryType,
+    TSummaryQueryType
+  > = {
     all: [globalKey],
     lists: () => [...queryKeyFactory.all, "list"],
     list: (query?: TListQueryType) => [...queryKeyFactory.lists(), { query }],
     details: () => [...queryKeyFactory.all, "detail"],
     detail: (id: TDetailQueryType) => [...queryKeyFactory.details(), id],
+    summaries: () => [...queryKeyFactory.all, "summary"],
+    summary: (query?: TSummaryQueryType) => [
+      ...queryKeyFactory.summaries(),
+      { query },
+    ],
   };
   return queryKeyFactory;
 };

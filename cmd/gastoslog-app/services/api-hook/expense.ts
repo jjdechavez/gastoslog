@@ -12,16 +12,27 @@ import {
   UseQueryOptionsWrapper,
 } from "@/services/query";
 import { EXPENSE_CREATE_MUTATION_KEY } from "@/services/offline/mutation-keys";
+import { ListMeta } from "@/types/api";
 import type {
   Expense,
+  ExpenseFilter,
   ExpenseInput,
   ExpenseOverviewQuery,
   ExpenseOverviewResponse,
+  ExpenseTotal,
 } from "@/types/expense";
 
 const EXPENSE_QUERY_KEY = `expenses` as const;
 
-export const expenseKeys = queryKeysFactory(EXPENSE_QUERY_KEY);
+// Aggregates live in their own ("summary") namespace, separate from paginated
+// lists, so an infinite scroll or a page change never invalidates them and a
+// stale total can't be mistaken for a fresh one.
+export const expenseKeys = queryKeysFactory<
+  typeof EXPENSE_QUERY_KEY,
+  Partial<ListMeta> & ExpenseFilter,
+  string,
+  ExpenseFilter
+>(EXPENSE_QUERY_KEY);
 
 type ExpensesQueryKey = typeof expenseKeys;
 
@@ -67,11 +78,39 @@ export const useUpdateExpense = (
     mutationFn: (input: ExpenseInput) => api().expense.update(expenseId, input),
     ...buildOptions(
       queryClient,
-      [expenseKeys.lists(), expenseKeys.detail(expenseId)],
+      [
+        expenseKeys.lists(),
+        expenseKeys.detail(expenseId),
+        // Editing an amount or category changes the filtered total too, not
+        // just the row.
+        expenseKeys.summaries(),
+      ],
       options,
     ),
   });
   return { data: data?.data, ...rest };
+};
+
+/**
+ * Total amount + count for everything matching `filter`.
+ *
+ * The key is built from the filter alone (never the page), so this stays correct
+ * as the list is paginated. Disable with `enabled` to avoid the request
+ * entirely when the summary is toggled off.
+ */
+export const useExpenseSummary = (
+  filter: ExpenseFilter,
+  options?: UseQueryOptionsWrapper<
+    ExpenseTotal,
+    Error,
+    ReturnType<typeof expenseKeys.summary>
+  >,
+) => {
+  return useQuery({
+    queryKey: expenseKeys.summary(filter),
+    queryFn: () => api().expense.summary(filter),
+    ...options,
+  });
 };
 
 export const useOverviewExpense = (
@@ -79,7 +118,10 @@ export const useOverviewExpense = (
   options?: UseQueryOptionsWrapper<ExpenseOverviewResponse, Error>,
 ) => {
   return useQuery({
-    queryKey: ["expense", "overview", query],
+    // Nested under summaries() so a single invalidate of expenseKeys.summaries()
+    // refreshes both this and useExpenseSummary. Previously this used a
+    // hand-rolled ["expense", "overview"] key that no factory owned.
+    queryKey: [...expenseKeys.summaries(), "overview", query],
     queryFn: () => api().expense.overview(query),
     ...options,
   });
@@ -94,7 +136,11 @@ export const useDeleteExpense = (
     mutationFn: () => api().expense.delete(expenseId),
     ...buildOptions(
       queryClient,
-      [expenseKeys.lists(), expenseKeys.detail(expenseId)],
+      [
+        expenseKeys.lists(),
+        expenseKeys.detail(expenseId),
+        expenseKeys.summaries(),
+      ],
       options,
     ),
   });

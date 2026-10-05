@@ -2,9 +2,11 @@ import { Category, CategoryInput, ListCategory } from "@/types/category";
 import { request } from "./request";
 import {
   Expense,
+  ExpenseFilter,
   ExpenseInput,
   ExpenseOverviewQuery,
   ExpenseOverviewResponse,
+  ExpenseTotal,
   ListExpense,
 } from "@/types/expense";
 import { ListMeta } from "@/types/api";
@@ -125,10 +127,23 @@ export const api = (version = V1) => {
       },
     },
     expense: {
-      list: async (query?: Partial<ListMeta>) => {
+      list: async (query?: Partial<ListMeta> & ExpenseFilter) => {
         const searchParams = getSearchParams(query || {});
         return await request<ListExpense>(
           `${version}/expenses${searchParams}`,
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        );
+      },
+      // Takes the same filter params as `list` and covers exactly the same
+      // rows, but aggregates in SQL. Summing the pages a client has loaded
+      // would only total what it happened to scroll through.
+      summary: async (query: ExpenseFilter = {}) => {
+        const searchParams = getSearchParams(query);
+        return await request<ExpenseTotal>(
+          `${version}/expenses/summary${searchParams}`,
           {
             method: "GET",
             credentials: "include",

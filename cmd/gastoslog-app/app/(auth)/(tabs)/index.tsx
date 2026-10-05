@@ -1,4 +1,3 @@
-import { ButtonText } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { DatePicker } from "@/components/DatePicker";
 import { HGroup } from "@/components/HGroup";
@@ -9,16 +8,25 @@ import { Row } from "@/components/Row";
 import { StatCard } from "@/components/StatCard";
 import { Amount } from "@/components/Amount";
 import { ProgressBar } from "@/components/ProgressBar";
+import { SegmentedControl } from "@/components/SegmentedControl";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ScreenState";
 import { PendingSyncBadge } from "@/components/PendingSyncBadge";
+import { useThemeColor } from "@/hooks/useThemeColor";
 import { useOverviewExpense } from "@/services/api-hook/expense";
 import { useOnlineStatus } from "@/services/offline/useOnlineStatus";
-import { PicoThemeVariables } from "@/styles/pico-lime";
-import { ExpenseOverviewResponse } from "@/types/expense";
+import { ExpenseOverviewResponse, Period } from "@/types/expense";
 import { router, useLocalSearchParams } from "expo-router";
-import { StyleSheet, TouchableOpacity } from "react-native";
+import { StyleSheet } from "react-native";
+import {
+  formatISODateLong,
+  isValidISODate,
+  parseISODate,
+  todayISO,
+  toISODate,
+} from "@/services/date";
 
-type Period = "today" | "month" | "year";
+// Period used to be redeclared here as well as in types/expense.ts; imported so
+// the overview and the expense screen can't drift on what a period means.
 
 const getPeriodLabel = (period: Period) => {
   switch (period) {
@@ -31,72 +39,44 @@ const getPeriodLabel = (period: Period) => {
   }
 };
 
-const formatDate = (date: Date, period: Period) => {
-  const options: Intl.DateTimeFormatOptions = {};
-  switch (period) {
-    case "today":
-      options.year = "numeric";
-      options.month = "long";
-      options.day = "numeric";
-      break;
-    case "month":
-      options.year = "numeric";
-      options.month = "long";
-      break;
-    case "year":
-      options.year = "numeric";
-      break;
-    default:
-      // Fallback for unexpected viewType, or default to full date
-      options.year = "numeric";
-      options.month = "long";
-      options.day = "numeric";
-      break;
+// Formats the selected day for the caption under the summary.
+//
+// Deliberately NOT `new Date(iso).toLocaleDateString(...)`: that parses the
+// YYYY-MM-DD string as UTC midnight, which in a negative-offset zone renders as
+// the previous day. Going through the local-calendar helpers in services/date
+// keeps the caption on the day the user actually tapped.
+const formatDate = (iso: string, period: Period) => {
+  if (period === "year") {
+    return formatISODateLong(iso).split(", ").pop() ?? iso;
   }
-
-  return date.toLocaleDateString("en-PH", options);
+  return formatISODateLong(iso);
 };
 
-function PeriodButton(props: { period: Period; label: string }) {
-  const local = useLocalSearchParams();
-  const localPeriod = local?.period ?? "today";
-  return (
-    <TouchableOpacity
-      style={[
-        styles.periodButton,
-        localPeriod === props.period && styles.periodButtonActive,
-      ]}
-      onPress={() => router.setParams({ period: props.period })}
-    >
-      <ButtonText
-        style={[
-          styles.periodButtonText,
-          localPeriod === props.period && styles.periodButtonTextActive,
-        ]}
-      >
-        {props.label}
-      </ButtonText>
-    </TouchableOpacity>
-  );
-}
 
 function OverviewDatePicker() {
   const local = useLocalSearchParams();
-  const currentDate = new Date();
-  const selectedDate =
-    (local.date as string) ?? currentDate.toISOString().split("T")[0];
+  const raw = local.date as string | undefined;
+  const selectedDate = raw && isValidISODate(raw) ? raw : todayISO();
 
+  // toISODate (local fields) rather than toISOString (UTC), so "today" stays
+  // today for users east of Greenwich in the early hours.
   const handlePickDate = (date: Date) => {
-    router.setParams({ date: date.toISOString().split("T")[0] });
+    router.setParams({ date: toISODate(date) });
   };
+
+  // Only a day selector when the period is "today". For month/year the same
+  // field silently shifts which month you're looking at, with nothing on screen
+  // saying so — so hide it rather than leave a control whose effect isn't
+  // discoverable.
+  const period = (local.period as Period) ?? "today";
+  if (period !== "today") {
+    return null;
+  }
 
   return (
     <ThemedView style={styles.dateSection}>
-      <ThemedText type="subtitle" style={styles.dateLabel}>
-        Select Date
-      </ThemedText>
       <DatePicker
-        value={new Date(selectedDate)}
+        value={parseISODate(selectedDate)}
         onChange={handlePickDate}
         placeholder="Select a date"
         maximumDate={new Date()}
@@ -106,21 +86,29 @@ function OverviewDatePicker() {
 }
 
 function Periods() {
+  const local = useLocalSearchParams();
+  const period = (local.period as Period) ?? "today";
+
   return (
-    <ThemedView style={styles.periodSelector}>
-      <PeriodButton period="today" label="Today" />
-      <PeriodButton period="month" label="Month" />
-      <PeriodButton period="year" label="Year" />
-    </ThemedView>
+    <SegmentedControl
+      options={[
+        { label: "Today", value: "today" },
+        { label: "This Month", value: "month" },
+        { label: "This Year", value: "year" },
+      ]}
+      value={period}
+      onChange={(value) => router.setParams({ period: value })}
+      style={styles.periodSelector}
+    />
   );
 }
 
 function TotalOverview() {
   const local = useLocalSearchParams();
   const selectedPeriod = (local.period as Period) ?? "today";
-  const currentDate = new Date();
-  const selectedDate =
-    (local.date as string) ?? currentDate.toISOString().split("T")[0];
+  const rawDate = local.date as string | undefined;
+  const selectedDate = rawDate && isValidISODate(rawDate) ? rawDate : todayISO();
+  const accentColor = useThemeColor({}, "tint");
 
   const { data: overview, status } = useOverviewExpense({
     period: selectedPeriod,
@@ -149,13 +137,18 @@ function TotalOverview() {
             value={
               <Amount type="title" cents={overview.meta.totalAmount} />
             }
-            valueColor={PicoThemeVariables.primaryBackground}
+            // Themed text colour. This was PicoThemeVariables.primaryBackground
+            // (lime #a5d601) as text on a card, which is ~1.9:1 — unreadable, and
+            // identical in both themes because it's a bare constant.
+            valueColor={accentColor}
           />
           <StatCard label="Total Expenses" value={overview.meta.totalCount} />
         </Row>
         <ThemedText type="caption">
-          {getPeriodLabel(selectedPeriod)} of{" "}
-          {formatDate(new Date(selectedDate), selectedPeriod)}
+          {getPeriodLabel(selectedPeriod)}
+          {selectedPeriod === "today"
+            ? ` · ${formatDate(selectedDate, selectedPeriod)}`
+            : ""}
         </ThemedText>
       </Card>
 
@@ -176,10 +169,12 @@ type OverviewByCategoryProps = {
 
 function OverviewByCategory(props: OverviewByCategoryProps) {
   if (props.overview.data.length === 0) {
+    // No date echo here — the caption above already says which day/period this
+    // is, so "No expenses found for today on Oct 5, 2026" repeated it twice.
     return (
       <Card>
         <EmptyState
-          message={`No expenses found for ${getPeriodLabel(props.period).toLowerCase()} of ${formatDate(new Date(props.date), props.period)}`}
+          message={`No expenses yet ${getPeriodLabel(props.period).toLowerCase()}`}
         />
       </Card>
     );
@@ -216,8 +211,10 @@ export default function HomeScreen() {
       <HGroup title="Overview" />
       <PendingSyncBadge />
 
-      <OverviewDatePicker />
+      {/* Period first: it's the primary decision. The date field is a day
+          selector that only appears for "today", so it belongs underneath. */}
       <Periods />
+      <OverviewDatePicker />
       <TotalOverview />
     </Screen>
   );
@@ -225,28 +222,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   periodSelector: {
-    flexDirection: "row",
-    marginBottom: 24,
-    gap: 8,
-  },
-  periodButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    alignItems: "center",
-  },
-  periodButtonActive: {
-    backgroundColor: PicoThemeVariables.primaryBackground,
-    borderColor: PicoThemeVariables.primaryBorder,
-  },
-  periodButtonText: {
-    fontWeight: "600",
-  },
-  periodButtonTextActive: {
-    color: "white",
+    marginBottom: 16,
   },
   summaryCard: {
     marginBottom: 24,
@@ -258,8 +234,5 @@ const styles = StyleSheet.create({
   dateSection: {
     marginBottom: 24,
     gap: 8,
-  },
-  dateLabel: {
-    marginBottom: 8,
   },
 });

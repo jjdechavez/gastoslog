@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { Platform, TouchableOpacity, StyleSheet } from "react-native";
+import { Platform, TouchableOpacity, StyleSheet, View } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { ThemedText } from "./ThemedText";
-import { ThemedView } from "./ThemedView";
 import { PicoThemeVariables } from "@/styles/pico-lime";
 import { useThemeColor } from "@/hooks/useThemeColor";
 
@@ -50,7 +49,19 @@ export const DatePicker = React.forwardRef<any, DatePickerProps>(
     };
 
     return (
-      <ThemedView>
+      // Deliberately a plain View, not ThemedView.
+      //
+      // ThemedView paints the theme's `background` token, which is a different
+      // colour from the input's `formElementBackgroundColor` — in dark mode
+      // #13161e vs rgb(28,33,43.5). The wrapper therefore showed through
+      // around the control as a mismatched halo, and inside a Card (whose
+      // background differs again) it looked like the input belonged to a
+      // different surface.
+      //
+      // The native picker renders inline below the control, so this wrapper has
+      // to stay layout-only. `Input` needs no equivalent wrapper because
+      // TextInput paints its own background edge to edge.
+      <View>
         <TouchableOpacity
           ref={ref}
           style={[
@@ -90,7 +101,7 @@ export const DatePicker = React.forwardRef<any, DatePickerProps>(
             minimumDate={props.minimumDate}
           />
         )}
-      </ThemedView>
+      </View>
     );
   },
 );
